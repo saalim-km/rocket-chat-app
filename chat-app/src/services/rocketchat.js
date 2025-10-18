@@ -11,7 +11,6 @@ const api = axios.create({
 const getAuthHeaders = (authToken, userId) => ({
   'X-Auth-Token': authToken,
   'X-User-Id': userId,
-  'Content-Type': 'application/json',
 });
 
 // Authentication
@@ -36,7 +35,7 @@ export const login = async (username, password) => {
       };
     }
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return {
       success: false,
       error: error.response?.data?.error || 'Network error during login',
@@ -139,6 +138,32 @@ export const sendMessage = async (roomId, message, authToken, userId) => {
   }
 };
 
+// Upload a file
+// src/services/rocketchat.js (partial update)
+export const uploadFile = async (roomId, file, authToken, userId) => {
+  const formData = new FormData();
+  formData.append('file', file); // Required: The file itself
+  formData.append('description', `Uploaded ${file.name}`); // Optional: Description instead of msg
+
+  try {
+    const response = await api.post(`/rooms.upload/${roomId}`, formData, {
+      headers: {
+        ...getAuthHeaders(authToken, userId),
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return {
+      success: response.data.success,
+      message: response.data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to upload file',
+    };
+  }
+};
+
 // Delete a message
 export const deleteMessage = async (roomId, msgId, authToken, userId) => {
   try {
@@ -195,6 +220,25 @@ export const getRoomInfo = async (roomId, authToken, userId) => {
     return {
       success: false,
       error: error.response?.data?.error || 'Failed to get room info',
+    };
+  }
+};
+
+export const pinMessage = async (roomId, msgId, authToken, userId) => {
+  try {
+    const response = await api.post('/chat.pinMessage', {
+      roomId,
+      messageId: msgId,
+    }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return {
+      success: response.data.success,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to pin message',
     };
   }
 };

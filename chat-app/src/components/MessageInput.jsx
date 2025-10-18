@@ -1,31 +1,57 @@
+// src/components/MessageInput.js
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { sendMessage } from '../services/rocketchat';
+import { sendMessage, uploadFile } from '../services/rocketchat';
 import './MessageInput.css';
 
 const MessageInput = ({ roomId, onNewMessage }) => {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [file, setFile] = useState(null);
   const { authToken, userId } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!message.trim() || sending) return;
+    if ((!message.trim() && !file) || sending) return;
     
     setSending(true);
     setError('');
 
     try {
-      const result = await sendMessage(roomId, message.trim(), authToken, userId);
-      
-      if (result.success) {
-        // Add the message to the local state immediately for better UX
-        onNewMessage(result.message);
+      let result;
+      if (file) {
+        result = await uploadFile(roomId, file, authToken, userId);
+        if (result.success) {
+          onNewMessage({
+            _id: result.message._id,
+            msg: `Uploaded ${file.name}`,
+            u: { _id: userId, username: result.message.u.username },
+            ts: new Date(),
+            attachments: [{
+              title: file.name,
+              image_url: result.message.attachments[0]?.image_url || '',
+              description: `Uploaded by ${result.message.u.username}`,
+            }],
+          });
+        } else {
+          setError(result.error || 'Failed to upload file');
+        }
+      }
+
+      if (message.trim()) {
+        result = await sendMessage(roomId, message.trim(), authToken, userId);
+        if (result.success) {
+          onNewMessage(result.message);
+        } else {
+          setError(result.error || 'Failed to send message');
+        }
+      }
+
+      if (result && result.success) {
         setMessage('');
-      } else {
-        setError(result.error || 'Failed to send message');
+        setFile(null);
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -38,6 +64,13 @@ const MessageInput = ({ roomId, onNewMessage }) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
     }
   };
 
@@ -55,14 +88,20 @@ const MessageInput = ({ roomId, onNewMessage }) => {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type a message..."
+            placeholder="Type a message or upload a file..."
             disabled={sending}
             className="message-textarea"
             rows="1"
           />
+          <input
+            type="file"
+            onChange={handleFileChange}
+            className="file-input"
+            disabled={sending}
+          />
           <button
             type="submit"
-            disabled={!message.trim() || sending}
+            disabled={!message.trim() && !file || sending}
             className="send-button"
           >
             {sending ? (
@@ -86,4 +125,3 @@ const MessageInput = ({ roomId, onNewMessage }) => {
 };
 
 export default MessageInput;
-

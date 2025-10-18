@@ -1,7 +1,7 @@
 // src/components/ChatLayout.js
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getRooms, getMessages, deleteMessage } from '../services/rocketchat';
+import { getRooms, getMessages, deleteMessage, reactToMessage } from '../services/rocketchat';
 import RoomList from './RoomList';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';

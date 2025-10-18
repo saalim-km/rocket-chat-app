@@ -1,17 +1,20 @@
 .message-input-container {
-  padding: 16px 24px;
+  padding: 20px 24px;
   background: white;
-  border-top: 1px solid #e1e5e9;
+  border-top: 1px solid #e2e8f0;
+  backdrop-filter: blur(10px);
 }
 
 .error-message {
-  background-color: #fee;
-  color: #c33;
-  padding: 8px 12px;
-  border-radius: 6px;
-  margin-bottom: 12px;
-  font-size: 13px;
-  border: 1px solid #fcc;
+  background: linear-gradient(135deg, #fed7d7, #feb2b2);
+  color: #c53030;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-left: 4px solid #e53e3e;
+  box-shadow: 0 2px 8px rgba(229, 62, 62, 0.1);
 }
 
 .message-input-form {
@@ -21,15 +24,20 @@
 .input-wrapper {
   display: flex;
   align-items: flex-end;
-  background: #f8f9fa;
-  border: 2px solid #e1e5e9;
+  gap: 12px;
+  background: #f7fafc;
+  border: 2px solid #e2e8f0;
   border-radius: 24px;
-  padding: 8px 12px;
-  transition: border-color 0.2s ease;
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .input-wrapper:focus-within {
   border-color: #667eea;
+  background: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+  transform: translateY(-1px);
 }
 
 .message-textarea {
@@ -38,48 +46,105 @@
   background: transparent;
   resize: none;
   outline: none;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 15px;
+  line-height: 1.5;
   max-height: 120px;
-  min-height: 20px;
+  min-height: 24px;
   font-family: inherit;
   padding: 4px 8px;
+  color: #2d3748;
 }
 
 .message-textarea::placeholder {
-  color: #999;
+  color: #a0aec0;
+}
+
+.file-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.file-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.file-input-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-input-label:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.05);
+}
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #edf2f7;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+.file-preview button {
+  background: none;
+  border: none;
+  color: #e53e3e;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.file-preview button:hover {
+  background: rgba(229, 62, 62, 0.1);
 }
 
 .send-button {
-  background: #667eea;
+  background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-left: 8px;
-  flex-shrink: 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .send-button:hover:not(:disabled) {
-  background: #5a6fd8;
-  transform: scale(1.05);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .send-button:disabled {
-  background: #ccc;
+  background: #cbd5e0;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .sending-spinner {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top: 2px solid white;
   border-radius: 50%;
@@ -94,20 +159,20 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .message-input-container {
-    padding: 12px 16px;
+    padding: 16px 20px;
   }
   
   .input-wrapper {
-    padding: 6px 10px;
+    padding: 10px 14px;
+    gap: 10px;
   }
   
   .message-textarea {
-    font-size: 13px;
+    font-size: 14px;
   }
   
   .send-button {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
   }
 }
-

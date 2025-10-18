@@ -44,7 +44,6 @@ const Message = ({ message, isOwn, onDeleteMessage, onToggleReact, currentUserUs
     thumbsup: '👍',
     heart: '❤️',
     smile: '😊',
-    // Add more emojis here
   };
 
   return (
@@ -75,7 +74,7 @@ const Message = ({ message, isOwn, onDeleteMessage, onToggleReact, currentUserUs
                 {attachment.image_url && (
                   <img 
                     src={attachment.image_url} 
-                    alt="Attachment" 
+                    alt={attachment.title || 'Attachment'} 
                     className="attachment-image"
                   />
                 )}
@@ -84,6 +83,18 @@ const Message = ({ message, isOwn, onDeleteMessage, onToggleReact, currentUserUs
                 )}
                 {attachment.description && (
                   <div className="attachment-description">{attachment.description}</div>
+                )}
+                {attachment.audio_url && (
+                  <audio controls className="attachment-audio">
+                    <source src={attachment.audio_url} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
+                )}
+                {attachment.video_url && (
+                  <video controls className="attachment-video">
+                    <source src={attachment.video_url} type="video/mp4" />
+                    Your browser does not support the video element.
+                  </video>
                 )}
               </div>
             ))}
@@ -111,7 +122,6 @@ const Message = ({ message, isOwn, onDeleteMessage, onToggleReact, currentUserUs
           <span onClick={() => onToggleReact(message._id, 'thumbsup')}>👍</span>
           <span onClick={() => onToggleReact(message._id, 'heart')}>❤️</span>
           <span onClick={() => onToggleReact(message._id, 'smile')}>😊</span>
-          {/* Add more reaction options as needed */}
         </div>
       </div>
       
