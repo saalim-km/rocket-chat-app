@@ -7,6 +7,7 @@ import ChatLayout from "./components/ChatLayout";
 import AdminDashboard from "./components/Dashboard";
 import Login from "./components/Login";
 import PublicRoute from "./components/PublicRoute";
+import ChannelManagement from "./components/ChannelManagement";
 
 const App = () => {
   return (
@@ -38,6 +39,14 @@ const App = () => {
               <AdminRoute>
                 <AdminDashboard />
               </AdminRoute>
+            }
+          />
+          <Route
+            path="/channel/:roomId"
+            element={
+              <ProtectedRoute>
+                <ChannelManagement />
+              </ProtectedRoute>
             }
           />
           <Route path="/" element={<Navigate to="/login" />} />

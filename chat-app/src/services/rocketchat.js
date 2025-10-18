@@ -534,3 +534,36 @@ export const uploadFile = async (roomId, file, authToken, userId, onProgress) =>
     return error.response?.data || { success: false, error: 'Upload failed' };
   }
 };
+
+export const updateChannelTopic = async (roomId, topic, authToken, userId) => {
+  try {
+    const response = await api.post('/channels.setTopic', { roomId, topic }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return { success: response.data.success };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || 'Failed to update topic' };
+  }
+};
+
+export const updateChannelDescription = async (roomId, description, authToken, userId) => {
+  try {
+    const response = await api.post('/channels.setDescription', { roomId, description }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return { success: response.data.success };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || 'Failed to update description' };
+  }
+};
+
+export const deleteRoom = async (roomId, authToken, userId) => {
+  try {
+    const response = await api.post('/channels.delete', { roomId }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return { success: response.data.success };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || 'Failed to delete channel' };
+  }
+};
