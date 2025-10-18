@@ -1,4 +1,4 @@
-const RoomList = ({ rooms, currentRoom, onRoomSelect }) => {
+const RoomList = ({ rooms, currentRoom, onRoomSelect, currentUsername }) => {
   return (
     <div className="h-full bg-[#2f343d] flex flex-col">
       <div className="p-4 border-b border-gray-700">
@@ -17,32 +17,38 @@ const RoomList = ({ rooms, currentRoom, onRoomSelect }) => {
           </div>
         ) : (
           <div className="py-2">
-            {rooms.map((room) => (
-              <button
-                key={room._id}
-                className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-700/50 transition-colors ${
-                  currentRoom?._id === room._id ? 'bg-gray-700/70' : ''
-                }`}
-                onClick={() => onRoomSelect(room)}
-              >
-                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-semibold">
-                  {room.t === 'c' ? '#' : room.t === 'd' ? '@' : '🔒'}
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="text-white font-medium truncate">
-                    {room.name || room.fname || 'Unnamed Room'}
+            {rooms.map((room) => {
+              let displayName;
+              if (room.t === 'd') {
+                displayName = room.usernames?.find(u => u !== currentUsername) || 'Unnamed';
+              } else {
+                displayName = room.name || room.fname || 'Unnamed Room';
+              }
+              return (
+                <button
+                  key={room._id}
+                  className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-700/50 transition-colors ${
+                    currentRoom?._id === room._id ? 'bg-gray-700/70' : ''
+                  }`}
+                  onClick={() => onRoomSelect(room)}
+                >
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-semibold">
+                    {room.t === 'c' ? '#' : room.t === 'd' ? '@' : '🔒'}
                   </div>
-                  <div className="text-xs text-gray-400 truncate">
-                    {room.topic || room.lastMessage?.msg || 'No recent messages'}
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="text-white font-medium truncate">{displayName}</div>
+                    <div className="text-xs text-gray-400 truncate">
+                      {room.topic || room.lastMessage?.msg || 'No recent messages'}
+                    </div>
                   </div>
-                </div>
-                {room.unread && room.unread > 0 && (
-                  <div className="flex-shrink-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center">
-                    {room.unread}
-                  </div>
-                )}
-              </button>
-            ))}
+                  {room.unread && room.unread > 0 && (
+                    <div className="flex-shrink-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center">
+                      {room.unread}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

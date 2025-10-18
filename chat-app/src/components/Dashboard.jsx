@@ -1,14 +1,13 @@
-// src/components/AdminDashboard.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { createUser, createChannel, updateChannel, addUserToChannel, getAllUsers, getRooms } from '../services/rocketchat';
+import { createUser, updateChannel, addUserToChannel, getAllUsers, getRooms } from '../services/rocketchat';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Users, MessageSquare, LogOut, Hash } from 'lucide-react';
+import { Users, MessageSquare, LogOut, Hash, Edit, PlusCircle } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { authToken, userId, isAdmin, user, logout, loading } = useAuth();
   const navigate = useNavigate();
-  
+
   // State for user creation form
   const [userFormData, setUserFormData] = useState({
     name: '',
@@ -18,16 +17,7 @@ const AdminDashboard = () => {
     roles: ['user'],
   });
   const [userFormErrors, setUserFormErrors] = useState({});
-  
-  // State for channel creation form
-  const [channelFormData, setChannelFormData] = useState({
-    name: '',
-    description: '',
-    readOnly: false,
-    private: false,
-  });
-  const [channelFormErrors, setChannelFormErrors] = useState({});
-  
+
   // State for channel editing form
   const [editChannelFormData, setEditChannelFormData] = useState({
     roomId: '',
@@ -35,7 +25,7 @@ const AdminDashboard = () => {
   });
   const [editChannelFormErrors, setEditChannelFormErrors] = useState({});
   const [rooms, setRooms] = useState([]);
-  
+
   // State for adding user to channel form
   const [addUserFormData, setAddUserFormData] = useState({
     roomId: '',
@@ -43,11 +33,16 @@ const AdminDashboard = () => {
   });
   const [addUserFormErrors, setAddUserFormErrors] = useState({});
   const [allUsers, setAllUsers] = useState([]);
-  
+
   // Common state
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+
+  // Modal states
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [isEditChannelOpen, setIsEditChannelOpen] = useState(false);
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
 
   // Load rooms and users on mount
   useEffect(() => {
@@ -109,15 +104,6 @@ const AdminDashboard = () => {
     return errors;
   };
 
-  // Validate channel creation form
-  const validateChannelForm = () => {
-    const errors = {};
-    if (!channelFormData.name.trim()) errors.name = 'Channel name is required';
-    else if (!/^[a-z0-9-]+$/.test(channelFormData.name)) errors.name = 'Channel name must be lowercase, numbers, or hyphens';
-    if (channelFormData.description.length > 250) errors.description = 'Description must be 250 characters or less';
-    return errors;
-  };
-
   // Validate channel editing form
   const validateEditChannelForm = () => {
     const errors = {};
@@ -154,8 +140,8 @@ const AdminDashboard = () => {
       email: userFormData.email.trim(),
       password: userFormData.password,
       roles: userFormData.roles,
-      verified: true, // Ensure user is verified
-      requirePasswordChange: false, // Prevent pending state
+      verified: true,
+      requirePasswordChange: false,
       joinDefaultChannels: true,
     };
 
@@ -170,53 +156,11 @@ const AdminDashboard = () => {
         roles: ['user'],
       });
       setUserFormErrors({});
-      // Refresh user list
       const userResult = await getAllUsers(authToken, userId);
       if (userResult.success) {
         setAllUsers(userResult.users);
       }
-    } else {
-      setError(result.error);
-    }
-    setFormLoading(false);
-  };
-
-  // Handle channel creation
-  const handleCreateChannel = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setFormLoading(true);
-
-    const errors = validateChannelForm();
-    if (Object.keys(errors).length > 0) {
-      setChannelFormErrors(errors);
-      setFormLoading(false);
-      return;
-    }
-
-    const channelData = {
-      name: channelFormData.name.trim(),
-      description: channelFormData.description.trim(),
-      readOnly: channelFormData.readOnly,
-      private: channelFormData.private,
-    };
-
-    const result = await createChannel(channelData, authToken, userId);
-    if (result.success) {
-      setSuccess(`Channel #${result.channel.name} created successfully!`);
-      setChannelFormData({
-        name: '',
-        description: '',
-        readOnly: false,
-        private: false,
-      });
-      setChannelFormErrors({});
-      // Refresh room list
-      const roomResult = await getRooms(authToken, userId);
-      if (roomResult.success) {
-        setRooms(roomResult.rooms.filter(room => room.t === 'c'));
-      }
+      setIsCreateUserOpen(false);
     } else {
       setError(result.error);
     }
@@ -249,11 +193,11 @@ const AdminDashboard = () => {
         description: '',
       });
       setEditChannelFormErrors({});
-      // Refresh room list
       const roomResult = await getRooms(authToken, userId);
       if (roomResult.success) {
         setRooms(roomResult.rooms.filter(room => room.t === 'c'));
       }
+      setIsEditChannelOpen(false);
     } else {
       setError(result.error);
     }
@@ -282,6 +226,7 @@ const AdminDashboard = () => {
         userId: '',
       });
       setAddUserFormErrors({});
+      setIsAddUserOpen(false);
     } else {
       setError(result.error);
     }
@@ -302,15 +247,6 @@ const AdminDashboard = () => {
       return { ...prev, roles };
     });
     setUserFormErrors((prev) => ({ ...prev, roles: '' }));
-  };
-
-  const handleChannelInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setChannelFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-    setChannelFormErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleEditChannelInputChange = (e) => {
@@ -377,8 +313,37 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Create User Form */}
-          <div className="bg-[#2f343d] rounded-lg p-6">
+          {/* Options */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => setIsCreateUserOpen(true)}
+              className="flex flex-col items-center gap-2 p-6 bg-[#2f343d] hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <PlusCircle size={32} className="text-emerald-500" />
+              <span className="text-white font-medium">Create User</span>
+            </button>
+            <button
+              onClick={() => setIsEditChannelOpen(true)}
+              className="flex flex-col items-center gap-2 p-6 bg-[#2f343d] hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <Edit size={32} className="text-emerald-500" />
+              <span className="text-white font-medium">Edit Channel</span>
+            </button>
+            <button
+              onClick={() => setIsAddUserOpen(true)}
+              className="flex flex-col items-center gap-2 p-6 bg-[#2f343d] hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <Users size={32} className="text-emerald-500" />
+              <span className="text-white font-medium">Add User to Channel</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Create User Modal */}
+      {isCreateUserOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#2f343d] rounded-lg p-6 max-w-md w-full mx-4">
             <h2 className="text-2xl font-semibold text-white mb-4">Create New User</h2>
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div>
@@ -453,81 +418,31 @@ const AdminDashboard = () => {
                 </div>
                 {userFormErrors.roles && <p className="text-red-400 text-xs mt-1">{userFormErrors.roles}</p>}
               </div>
-              <button
-                type="submit"
-                disabled={formLoading}
-                className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-              >
-                {formLoading ? 'Creating...' : 'Create User'}
-              </button>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateUserOpen(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                >
+                  {formLoading ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
             </form>
           </div>
+        </div>
+      )}
 
-          {/* Create Channel Form */}
-          <div className="bg-[#2f343d] rounded-lg p-6">
-            <h2 className="text-2xl font-semibold text-white mb-4">Create New Channel</h2>
-            <form onSubmit={handleCreateChannel} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">Channel Name</label>
-                <div className="flex items-center gap-2">
-                  <Hash size={16} className="text-gray-400" />
-                  <input
-                    type="text"
-                    name="name"
-                    value={channelFormData.name}
-                    onChange={handleChannelInputChange}
-                    className={`w-full px-4 py-2 bg-[#1f2329] border ${channelFormErrors.name ? 'border-red-500' : 'border-gray-700'} rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
-                    placeholder="Enter channel name"
-                  />
-                </div>
-                {channelFormErrors.name && <p className="text-red-400 text-xs mt-1">{channelFormErrors.name}</p>}
-              </div>
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">Description</label>
-                <textarea
-                  name="description"
-                  value={channelFormData.description}
-                  onChange={handleChannelInputChange}
-                  className={`w-full px-4 py-2 bg-[#1f2329] border ${channelFormErrors.description ? 'border-red-500' : 'border-gray-700'} rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none`}
-                  placeholder="Enter channel description"
-                  rows={3}
-                />
-                {channelFormErrors.description && <p className="text-red-400 text-xs mt-1">{channelFormErrors.description}</p>}
-              </div>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-gray-300">
-                  <input
-                    type="checkbox"
-                    name="readOnly"
-                    checked={channelFormData.readOnly}
-                    onChange={handleChannelInputChange}
-                    className="form-checkbox text-emerald-500"
-                  />
-                  Read-only
-                </label>
-                <label className="flex items-center gap-2 text-gray-300">
-                  <input
-                    type="checkbox"
-                    name="private"
-                    checked={channelFormData.private}
-                    onChange={handleChannelInputChange}
-                    className="form-checkbox text-emerald-500"
-                  />
-                  Private
-                </label>
-              </div>
-              <button
-                type="submit"
-                disabled={formLoading}
-                className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-              >
-                {formLoading ? 'Creating...' : 'Create Channel'}
-              </button>
-            </form>
-          </div>
-
-          {/* Edit Channel Form */}
-          <div className="bg-[#2f343d] rounded-lg p-6">
+      {/* Edit Channel Modal */}
+      {isEditChannelOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#2f343d] rounded-lg p-6 max-w-md w-full mx-4">
             <h2 className="text-2xl font-semibold text-white mb-4">Edit Channel</h2>
             <form onSubmit={handleEditChannel} className="space-y-4">
               <div>
@@ -559,18 +474,31 @@ const AdminDashboard = () => {
                 />
                 {editChannelFormErrors.description && <p className="text-red-400 text-xs mt-1">{editChannelFormErrors.description}</p>}
               </div>
-              <button
-                type="submit"
-                disabled={formLoading}
-                className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-              >
-                {formLoading ? 'Updating...' : 'Update Channel'}
-              </button>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsEditChannelOpen(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                >
+                  {formLoading ? 'Updating...' : 'Update Channel'}
+                </button>
+              </div>
             </form>
           </div>
+        </div>
+      )}
 
-          {/* Add User to Channel Form */}
-          <div className="bg-[#2f343d] rounded-lg p-6">
+      {/* Add User to Channel Modal */}
+      {isAddUserOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#2f343d] rounded-lg p-6 max-w-md w-full mx-4">
             <h2 className="text-2xl font-semibold text-white mb-4">Add User to Channel</h2>
             <form onSubmit={handleAddUserToChannel} className="space-y-4">
               <div>
@@ -607,17 +535,26 @@ const AdminDashboard = () => {
                 </select>
                 {addUserFormErrors.userId && <p className="text-red-400 text-xs mt-1">{addUserFormErrors.userId}</p>}
               </div>
-              <button
-                type="submit"
-                disabled={formLoading}
-                className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-              >
-                {formLoading ? 'Adding...' : 'Add User to Channel'}
-              </button>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsAddUserOpen(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                >
+                  {formLoading ? 'Adding...' : 'Add User to Channel'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -1,17 +1,8 @@
-// src/components/MessageList.jsx
 import { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { pinMessage, unpinMessage } from '../services/rocketchat';
 import Message from './Message';
 
-const MessageList = ({
-  messages,
-  currentUserId,
-  currentUserUsername,
-  onDeleteMessage,
-  onToggleReact,
-  onEditMessage,
-}) => {
+const MessageList = ({ messages, currentUserId, currentUserUsername, onDeleteMessage, onToggleReact, onEditMessage, onPinMessage, onUnpinMessage }) => {
   const { authToken, userId } = useAuth();
   const messagesEndRef = useRef(null);
 
@@ -22,34 +13,6 @@ const MessageList = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const handlePinMessage = async (msgId) => {
-    if (!authToken || !userId) return;
-    const result = await pinMessage(msgId, authToken, userId);
-    if (result.success) {
-      // Update the message in state to reflect pinned status
-      const updatedMessages = messages.map((m) =>
-        m._id === msgId ? { ...m, pinned: true } : m
-      );
-      setMessages(updatedMessages);
-    } else {
-      console.error('Pin failed:', result.error);
-    }
-  };
-
-  const handleUnpinMessage = async (msgId) => {
-    if (!authToken || !userId) return;
-    const result = await unpinMessage(msgId, authToken, userId);
-    if (result.success) {
-      // Update the message in state to reflect unpinned status
-      const updatedMessages = messages.map((m) =>
-        m._id === msgId ? { ...m, pinned: false } : m
-      );
-      setMessages(updatedMessages);
-    } else {
-      console.error('Unpin failed:', result.error);
-    }
-  };
 
   if (messages.length === 0) {
     return (
@@ -72,8 +35,8 @@ const MessageList = ({
           onDeleteMessage={onDeleteMessage}
           onToggleReact={onToggleReact}
           onEditMessage={onEditMessage}
-          onPinMessage={handlePinMessage}
-          onUnpinMessage={handleUnpinMessage}
+          onPinMessage={onPinMessage}
+          onUnpinMessage={onUnpinMessage}
           currentUserUsername={currentUserUsername}
         />
       ))}

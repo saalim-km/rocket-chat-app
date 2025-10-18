@@ -1,11 +1,10 @@
-// src/components/ChatLayout.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getRooms, getMessages, deleteMessage, reactToMessage, updateMessage, pinMessage, unpinMessage, getRoomMembers, searchMessages, getPinnedMessages } from '../services/rocketchat';
+import { getRooms, getMessages, deleteMessage, reactToMessage, updateMessage, pinMessage, unpinMessage, getRoomMembers, searchMessages, getPinnedMessages, createChannel, createDM, spotlightSearch } from '../services/rocketchat';
 import RoomList from './RoomList';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import { Search, LogOut, Hash, Star, User, Users, Pin } from 'lucide-react';
+import { Search, LogOut, Hash, Star, User, Users, Pin, Plus } from 'lucide-react';
 
 const ChatLayout = () => {
   const { authToken, userId, user, isAdmin, logout } = useAuth();
@@ -26,10 +25,19 @@ const ChatLayout = () => {
   const [pinnedMessages, setPinnedMessages] = useState([]);
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
 
+  // New states for create modals
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createType, setCreateType] = useState(null); // 'channel' or 'dm'
+  const [channelFormData, setChannelFormData] = useState({ name: '', description: '', readOnly: false, private: false });
+  const [channelFormErrors, setChannelFormErrors] = useState({});
+  const [dmSearchQuery, setDmSearchQuery] = useState('');
+  const [searchedUsers, setSearchedUsers] = useState([]);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState('');
+
   useEffect(() => {
     const loadRooms = async () => {
       if (!authToken || !userId) return;
-
       try {
         const result = await getRooms(authToken, userId);
         if (result.success) {
@@ -46,18 +54,15 @@ const ChatLayout = () => {
         setLoading(false);
       }
     };
-
     loadRooms();
   }, [authToken, userId]);
 
   useEffect(() => {
     const loadMessages = async () => {
       if (!currentRoom || !authToken || !userId) return;
-
       try {
         const result = await getMessages(currentRoom._id, authToken, userId, 50, currentRoom.t);
         if (result.success) {
-          // Filter out system messages (e.g., pin/unpin notifications)
           const filteredMessages = result.messages.filter(
             (msg) => !msg.t || !['message_pinned', 'rm'].includes(msg.t)
           ).reverse();
@@ -70,18 +75,15 @@ const ChatLayout = () => {
         setError('Failed to load messages');
       }
     };
-
     loadMessages();
   }, [currentRoom, authToken, userId]);
 
   useEffect(() => {
     if (!currentRoom || !authToken || !userId) return;
-
     const pollMessages = async () => {
       try {
         const result = await getMessages(currentRoom._id, authToken, userId, 50, currentRoom.t);
         if (result.success) {
-          // Filter out system messages
           const newMessages = result.messages.filter(
             (msg) => !msg.t || !['message_pinned', 'rm'].includes(msg.t)
           ).reverse();
@@ -94,7 +96,6 @@ const ChatLayout = () => {
         console.error('Error polling messages:', err);
       }
     };
-
     const interval = setInterval(pollMessages, 3000);
     return () => clearInterval(interval);
   }, [currentRoom, authToken, userId, searchTerm]);
@@ -106,7 +107,6 @@ const ChatLayout = () => {
       const performSearch = async () => {
         const result = await searchMessages(currentRoom._id, searchTerm, 50, authToken, userId);
         if (result.success) {
-          // Filter out system messages from search results
           const filteredMessages = result.messages.filter(
             (msg) => !msg.t || !['message_pinned', 'rm'].includes(msg.t)
           ).reverse();
@@ -119,6 +119,25 @@ const ChatLayout = () => {
     }
   }, [searchTerm, allMessages, currentRoom, authToken, userId]);
 
+  // New useEffect for DM user search
+  useEffect(() => {
+    if (createType !== 'dm' || !dmSearchQuery.trim() || !authToken || !userId) {
+      setSearchedUsers([]);
+      return;
+    }
+    const searchUsers = async () => {
+      const result = await spotlightSearch(dmSearchQuery, authToken, userId);
+      if (result.success) {
+        // Filter out current user
+        const filteredUsers = result.users.filter(u => u.username !== user.username);
+        setSearchedUsers(filteredUsers);
+      } else {
+        setCreateError(result.error);
+      }
+    };
+    searchUsers();
+  }, [dmSearchQuery, createType, authToken, userId, user]);
+
   const handleRoomSelect = (room) => {
     setCurrentRoom(room);
     setMessages([]);
@@ -129,7 +148,6 @@ const ChatLayout = () => {
   };
 
   const handleNewMessage = (message) => {
-    // Only add non-system messages
     if (!message.t || !['message_pinned', 'rm'].includes(message.t)) {
       setMessages((prevMessages) => [...prevMessages, message]);
       setAllMessages((prevMessages) => [...prevMessages, message]);
@@ -143,12 +161,10 @@ const ChatLayout = () => {
 
   const confirmDelete = async () => {
     if (!currentRoom || !deleteMsgId || !authToken || !userId) return;
-
     const result = await deleteMessage(currentRoom._id, deleteMsgId, authToken, userId);
     if (result.success) {
       setMessages((prevMessages) => prevMessages.filter((m) => m._id !== deleteMsgId));
       setAllMessages((prevMessages) => prevMessages.filter((m) => m._id !== deleteMsgId));
-      // Update pinned messages if the deleted message was pinned
       setPinnedMessages((prevPinned) => prevPinned.filter((m) => m._id !== deleteMsgId));
     } else {
       console.error('Delete failed:', result.error);
@@ -170,7 +186,6 @@ const ChatLayout = () => {
 
   const confirmEdit = async () => {
     if (!currentRoom || !editMsgId || !editMessageText.trim() || !authToken || !userId) return;
-
     const result = await updateMessage(currentRoom._id, editMsgId, editMessageText, authToken, userId);
     if (result.success) {
       const msgIndex = allMessages.findIndex((m) => m._id === editMsgId);
@@ -180,10 +195,7 @@ const ChatLayout = () => {
         newAllMessages[msgIndex] = updatedMsg;
         setAllMessages(newAllMessages);
         setMessages((prevMessages) => prevMessages.map((m) => (m._id === editMsgId ? updatedMsg : m)));
-        // Update pinned messages if the edited message is pinned
-        setPinnedMessages((prevPinned) =>
-          prevPinned.map((m) => (m._id === editMsgId ? { ...m, msg: editMessageText, editedAt: new Date(), edited: true } : m))
-        );
+        setPinnedMessages((prevPinned) => prevPinned.map((m) => (m._id === editMsgId ? { ...m, msg: editMessageText, editedAt: new Date(), edited: true } : m)));
       }
     } else {
       console.error('Edit failed:', result.error);
@@ -201,18 +213,14 @@ const ChatLayout = () => {
 
   const handleToggleReact = async (msgId, emoji) => {
     if (!user?.username || !authToken || !userId) return;
-
     const msgIndex = messages.findIndex((m) => m._id === msgId);
     if (msgIndex === -1) return;
-
     const msg = messages[msgIndex];
     const reactionKey = `:${emoji}:`;
     const reactions = msg.reactions || {};
     const userReactions = reactions[reactionKey] || { usernames: [] };
     const isReacted = userReactions.usernames.includes(user.username);
-
     const shouldReact = !isReacted;
-
     const result = await reactToMessage(msgId, emoji, shouldReact, authToken, userId);
     if (result.success) {
       if (shouldReact) {
@@ -227,7 +235,6 @@ const ChatLayout = () => {
           reactions[reactionKey] = userReactions;
         }
       }
-
       const updatedMsg = { ...msg, reactions: { ...reactions } };
       const newMessages = [...messages];
       newMessages[msgIndex] = updatedMsg;
@@ -238,10 +245,7 @@ const ChatLayout = () => {
         newAllMessages[allMsgIndex] = updatedMsg;
         setAllMessages(newAllMessages);
       }
-      // Update reactions in pinned messages if applicable
-      setPinnedMessages((prevPinned) =>
-        prevPinned.map((m) => (m._id === msgId ? { ...m, reactions: { ...reactions } } : m))
-      );
+      setPinnedMessages((prevPinned) => prevPinned.map((m) => (m._id === msgId ? { ...m, reactions: { ...reactions } } : m)));
     } else {
       console.error('Reaction failed:', result.error);
     }
@@ -251,13 +255,9 @@ const ChatLayout = () => {
     if (!authToken || !userId || !isAdmin) return;
     const result = await pinMessage(msgId, authToken, userId);
     if (result.success) {
-      // Update the pinned status of the message
-      const updatedMessages = messages.map((m) =>
-        m._id === msgId ? { ...m, pinned: true } : m
-      );
+      const updatedMessages = messages.map((m) => m._id === msgId ? { ...m, pinned: true } : m );
       setMessages(updatedMessages);
-      setAllMessages(updatedMessages);
-      // Add to pinned messages list
+      setAllMessages(allMessages.map((m) => m._id === msgId ? { ...m, pinned: true } : m ));
       const messageToPin = messages.find((m) => m._id === msgId);
       if (messageToPin && !pinnedMessages.some((pm) => pm._id === msgId)) {
         setPinnedMessages((prev) => [messageToPin, ...prev]);
@@ -271,13 +271,9 @@ const ChatLayout = () => {
     if (!authToken || !userId || !isAdmin) return;
     const result = await unpinMessage(msgId, authToken, userId);
     if (result.success) {
-      // Update the pinned status of the message
-      const updatedMessages = messages.map((m) =>
-        m._id === msgId ? { ...m, pinned: false } : m
-      );
+      const updatedMessages = messages.map((m) => m._id === msgId ? { ...m, pinned: false } : m );
       setMessages(updatedMessages);
-      setAllMessages(updatedMessages);
-      // Remove from pinned messages list
+      setAllMessages(allMessages.map((m) => m._id === msgId ? { ...m, pinned: false } : m ));
       setPinnedMessages((prev) => prev.filter((m) => m._id !== msgId));
     } else {
       console.error('Unpin failed:', result.error);
@@ -298,7 +294,6 @@ const ChatLayout = () => {
     if (!currentRoom || !authToken || !userId) return;
     const result = await getPinnedMessages(currentRoom._id, 50, 0, authToken, userId);
     if (result.success) {
-      // Filter out system messages from pinned messages
       const filteredPinned = result.messages.filter(
         (msg) => !msg.t || !['message_pinned', 'rm'].includes(msg.t)
       ).reverse();
@@ -317,160 +312,322 @@ const ChatLayout = () => {
     logout();
   };
 
+  // New handlers for create
+  const validateChannelForm = () => {
+    const errors = {};
+    if (!channelFormData.name.trim()) errors.name = 'Channel name is required';
+    else if (!/^[a-z0-9-]+$/.test(channelFormData.name)) errors.name = 'Channel name must be lowercase, numbers, or hyphens';
+    if (channelFormData.description.length > 250) errors.description = 'Description must be 250 characters or less';
+    return errors;
+  };
+
+  const handleCreateChannel = async () => {
+    setCreateError('');
+    setCreateLoading(true);
+    const errors = validateChannelForm();
+    if (Object.keys(errors).length > 0) {
+      setChannelFormErrors(errors);
+      setCreateLoading(false);
+      return;
+    }
+    const channelData = {
+      name: channelFormData.name.trim(),
+      description: channelFormData.description.trim(),
+      readOnly: channelFormData.readOnly,
+      private: channelFormData.private,
+    };
+    const result = await createChannel(channelData, authToken, userId);
+    if (result.success) {
+      // Reload rooms
+      const roomsResult = await getRooms(authToken, userId);
+      if (roomsResult.success) {
+        setRooms(roomsResult.rooms);
+      }
+      closeCreateModal();
+    } else {
+      setCreateError(result.error);
+    }
+    setCreateLoading(false);
+  };
+
+  const handleCreateDM = async (username) => {
+    setCreateError('');
+    setCreateLoading(true);
+    const result = await createDM(username, authToken, userId);
+    if (result.success) {
+      // Reload rooms
+      const roomsResult = await getRooms(authToken, userId);
+      if (roomsResult.success) {
+        setRooms(roomsResult.rooms);
+        // Optionally set current room to the new DM
+        setCurrentRoom(result.room);
+      }
+      closeCreateModal();
+    } else {
+      setCreateError(result.error);
+    }
+    setCreateLoading(false);
+  };
+
+  const handleChannelInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setChannelFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setChannelFormErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const closeCreateModal = () => {
+    setIsCreateModalOpen(false);
+    setCreateType(null);
+    setChannelFormData({ name: '', description: '', readOnly: false, private: false });
+    setChannelFormErrors({});
+    setDmSearchQuery('');
+    setSearchedUsers([]);
+    setCreateError('');
+  };
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#1f2329] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading chat...</p>
-        </div>
-      </div>
-    );
+    return <div className="flex-1 flex items-center justify-center text-gray-400">Loading chat...</div>;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#1f2329] flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">Error</h2>
-          <p className="text-gray-400 mb-6">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg transition-colors"
-          >
-            Retry
-          </button>
-        </div>
+      <div className="flex-1 flex flex-col items-center justify-center text-center">
+        <p className="text-red-400 mb-4">Error: {error}</p>
+        <button onClick={() => window.location.reload()} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg transition-colors">
+          Retry
+        </button>
       </div>
     );
   }
 
-  return (
-    <div className="h-screen flex flex-col bg-[#1f2329]">
-      <div className="flex-shrink-0 h-16 bg-[#2f343d] border-b border-gray-700 flex items-center justify-between px-6">
-        <div className="flex items-center gap-4">
-          <div className="text-white font-semibold text-lg">Omnichannel</div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-white font-medium">{user?.name || user?.username}</div>
-            <div className="text-xs text-emerald-400">{isAdmin ? 'Admin' : 'Online'}</div>
-          </div>
+  let createModalContent;
+  if (!createType) {
+    createModalContent = (
+      <>
+        <h3 className="text-xl font-semibold text-white mb-4">Create New</h3>
+        <div className="space-y-4">
           <button
-            onClick={handleLogout}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
-            title="Logout"
+            onClick={() => setCreateType('channel')}
+            className="w-full flex items-center gap-2 px-4 py-3 bg-[#1f2329] hover:bg-gray-700 text-white rounded-lg transition-colors"
           >
-            <LogOut size={20} />
+            <Hash size={20} /> Channel
+          </button>
+          <button
+            onClick={() => setCreateType('dm')}
+            className="w-full flex items-center gap-2 px-4 py-3 bg-[#1f2329] hover:bg-gray-700 text-white rounded-lg transition-colors"
+          >
+            <User size={20} /> Direct Message
           </button>
         </div>
-      </div>
-
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-64 flex-shrink-0 border-r border-gray-700">
-          <RoomList
-            rooms={rooms}
-            currentRoom={currentRoom}
-            onRoomSelect={handleRoomSelect}
-          />
+        <div className="mt-6 flex justify-end">
+          <button onClick={closeCreateModal} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+            Cancel
+          </button>
         </div>
-
-        <div className="flex-1 flex flex-col">
-          {currentRoom ? (
-            <>
-              <div className="flex-shrunk-0 bg-[#2f343d] border-b border-gray-700 px-6 py-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-semibold">
-                      {currentRoom.t === 'c' ? <Hash size={20} /> : <User size={20} />}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                        {currentRoom.t === 'c' && '#'}{currentRoom.name}
-                        <Star size={16} className="text-gray-500" />
-                      </h3>
-                      <p className="text-sm text-gray-400">{currentRoom.topic || 'No topic set'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => {
-                        setIsMembersOpen(true);
-                        loadMembers();
-                      }}
-                      className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors"
-                      title="Members"
-                    >
-                      <Users size={20} />
-                      <span className="text-sm">{currentRoom.usersCount || 0}</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsPinnedOpen(true);
-                        loadPinned();
-                      }}
-                      className="p-1 text-gray-400 hover:text-white transition-colors"
-                      title="Pinned Messages"
-                    >
-                      <Pin size={20} />
-                    </button>
-                  </div>
-                </div>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search messages..."
-                    className="w-full pl-10 pr-4 py-2 bg-[#1f2329] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <MessageList
-                messages={messages}
-                currentUserId={userId || ''}
-                currentUserUsername={user?.username || ''}
-                onDeleteMessage={openDeleteModal}
-                onToggleReact={handleToggleReact}
-                onEditMessage={openEditModal}
-                onPinMessage={handlePinMessage}
-                onUnpinMessage={handleUnpinMessage}
+      </>
+    );
+  } else if (createType === 'channel') {
+    createModalContent = (
+      <>
+        <h3 className="text-xl font-semibold text-white mb-4">Create Channel</h3>
+        {createError && <p className="text-red-400 mb-4">{createError}</p>}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Channel Name</label>
+            <div className="flex items-center gap-2">
+              <Hash size={16} className="text-gray-400" />
+              <input
+                type="text"
+                name="name"
+                value={channelFormData.name}
+                onChange={handleChannelInputChange}
+                className={"w-full px-4 py-2 bg-[#1f2329] border " + (channelFormErrors.name ? 'border-red-500' : 'border-gray-700') + " rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"}
+                placeholder="Enter channel name"
               />
-
-              <MessageInput
-                roomId={currentRoom._id}
-                onNewMessage={handleNewMessage}
+            </div>
+            {channelFormErrors.name && <p className="text-red-400 text-xs mt-1">{channelFormErrors.name}</p>}
+          </div>
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Description</label>
+            <textarea
+              name="description"
+              value={channelFormData.description}
+              onChange={handleChannelInputChange}
+              className={"w-full px-4 py-2 bg-[#1f2329] border " + (channelFormErrors.description ? 'border-red-500' : 'border-gray-700') + " rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"}
+              placeholder="Enter channel description"
+              rows={3}
+            />
+            {channelFormErrors.description && <p className="text-red-400 text-xs mt-1">{channelFormErrors.description}</p>}
+          </div>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-gray-300">
+              <input
+                type="checkbox"
+                name="readOnly"
+                checked={channelFormData.readOnly}
+                onChange={handleChannelInputChange}
+                className="form-checkbox text-emerald-500"
               />
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-white mb-2">Select a room to start chatting</h3>
-                <p className="text-gray-400">Choose a room from the sidebar to view messages</p>
-              </div>
+              Read-only
+            </label>
+            <label className="flex items-center gap-2 text-gray-300">
+              <input
+                type="checkbox"
+                name="private"
+                checked={channelFormData.private}
+                onChange={handleChannelInputChange}
+                className="form-checkbox text-emerald-500"
+              />
+              Private
+            </label>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <button onClick={() => setCreateType(null)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+              Back
+            </button>
+            <button
+              onClick={handleCreateChannel}
+              disabled={createLoading}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            >
+              {createLoading ? 'Creating...' : 'Create'}
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  } else {
+    createModalContent = (
+      <>
+        <h3 className="text-xl font-semibold text-white mb-4">Create Direct Message</h3>
+        {createError && <p className="text-red-400 mb-4">{createError}</p>}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Search User</label>
+            <input
+              type="text"
+              value={dmSearchQuery}
+              onChange={(e) => setDmSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 bg-[#1f2329] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="Enter username"
+            />
+          </div>
+          {searchedUsers.length > 0 && (
+            <div className="max-h-48 overflow-y-auto space-y-2">
+              {searchedUsers.map((u) => (
+                <button
+                  key={u._id}
+                  onClick={() => handleCreateDM(u.username)}
+                  disabled={createLoading}
+                  className="w-full flex items-center gap-3 px-4 py-2 bg-[#1f2329] hover:bg-gray-700 rounded-lg transition-colors disabled:cursor-not-allowed"
+                >
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-semibold">
+                    {u.username[0].toUpperCase()}
+                  </div>
+                  <div className="text-left">
+                    <div className="text-white">{u.name || u.username}</div>
+                    <div className="text-xs text-gray-400">@{u.username}</div>
+                  </div>
+                </button>
+              ))}
             </div>
           )}
+          <div className="flex gap-3 justify-end">
+            <button onClick={() => setCreateType(null)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+              Back
+            </button>
+            <button onClick={closeCreateModal} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+              Cancel
+            </button>
+          </div>
         </div>
+      </>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-[#1f2329] text-gray-200">
+      {/* Sidebar */}
+      <div className="w-64 border-r border-gray-700 flex flex-col">
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white">Omnichannel</h2>
+          <button onClick={() => setIsCreateModalOpen(true)} className="text-gray-400 hover:text-white transition-colors" title="Create new">
+            <Plus size={20} />
+          </button>
+        </div>
+        <RoomList rooms={rooms} currentRoom={currentRoom} onRoomSelect={handleRoomSelect} currentUsername={user?.username} />
       </div>
 
+      {/* Main Chat */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        {currentRoom ? (
+          <div className="h-16 bg-[#2f343d] border-b border-gray-700 flex items-center justify-between px-6">
+            <div className="flex items-center gap-3">
+              <div className="text-xl font-semibold text-white">
+                {currentRoom.t === 'c' && '#'} {currentRoom.name}
+              </div>
+              <p className="text-sm text-gray-400">{currentRoom.topic || 'No topic set'}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <button onClick={() => { setIsMembersOpen(true); loadMembers(); }} className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors" title="Members">
+                <Users size={16} /> {currentRoom.usersCount || 0}
+              </button>
+              <button onClick={() => { setIsPinnedOpen(true); loadPinned(); }} className="p-1 text-gray-400 hover:text-white transition-colors" title="Pinned Messages">
+                <Pin size={16} />
+              </button>
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search messages..."
+                  className="w-64 pl-10 pr-4 py-2 bg-[#1f2329] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Messages */}
+        {currentRoom ? (
+          <MessageList
+            messages={messages}
+            currentUserId={userId}
+            currentUserUsername={user?.username}
+            onDeleteMessage={openDeleteModal}
+            onToggleReact={handleToggleReact}
+            onEditMessage={openEditModal}
+            onPinMessage={handlePinMessage}
+            onUnpinMessage={handleUnpinMessage}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-400">
+            <div className="text-center">
+              <p className="text-xl font-medium mb-2">Select a room to start chatting</p>
+              <p className="text-sm">Choose a room from the sidebar to view messages</p>
+            </div>
+          </div>
+        )}
+
+        {/* Input */}
+        {currentRoom && (
+          <MessageInput roomId={currentRoom._id} onNewMessage={handleNewMessage} />
+        )}
+      </div>
+
+      {/* Modals */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#2f343d] rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-[#2f343d] rounded-lg p-6 max-w-sm w-full mx-4">
             <h3 className="text-xl font-semibold text-white mb-4">Confirm Delete</h3>
             <p className="text-gray-300 mb-6">Are you sure you want to delete this message?</p>
             <div className="flex gap-3 justify-end">
-              <button
-                onClick={cancelDelete}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-              >
+              <button onClick={cancelDelete} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
+              <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                 Delete
               </button>
             </div>
@@ -489,10 +646,7 @@ const ChatLayout = () => {
               rows={3}
             />
             <div className="flex gap-3 justify-end mt-4">
-              <button
-                onClick={cancelEdit}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-              >
+              <button onClick={cancelEdit} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
                 Cancel
               </button>
               <button
@@ -525,10 +679,7 @@ const ChatLayout = () => {
               ))}
             </div>
             <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setIsMembersOpen(false)}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-              >
+              <button onClick={() => setIsMembersOpen(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
                 Close
               </button>
             </div>
@@ -547,10 +698,7 @@ const ChatLayout = () => {
                     <div className="text-white font-medium">{msg.u.name || msg.u.username}</div>
                     <div className="text-xs text-gray-500">{formatTime(msg.ts)}</div>
                     {isAdmin && (
-                      <button
-                        onClick={() => handleUnpinMessage(msg._id)}
-                        className="ml-auto text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-600"
-                      >
+                      <button onClick={() => handleUnpinMessage(msg._id)} className="ml-auto text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-600">
                         Unpin
                       </button>
                     )}
@@ -561,13 +709,19 @@ const ChatLayout = () => {
               ))}
             </div>
             <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setIsPinnedOpen(false)}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-              >
+              <button onClick={() => setIsPinnedOpen(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Create Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#2f343d] rounded-lg p-6 max-w-md w-full mx-4">
+            {createModalContent}
           </div>
         </div>
       )}
