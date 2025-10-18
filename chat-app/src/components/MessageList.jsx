@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import Message from './Message';
 import './MessageList.css';
 
-const MessageList = ({ messages, currentUserId, currentUserUsername, onDeleteMessage, onToggleReact, onPinMessage }) => {
+const MessageList = ({ messages, currentUserId, currentUserUsername, onDeleteMessage, onToggleReact, onEditMessage }) => {
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -34,7 +34,7 @@ const MessageList = ({ messages, currentUserId, currentUserUsername, onDeleteMes
           isOwn={message.u?._id === currentUserId}
           onDeleteMessage={onDeleteMessage}
           onToggleReact={onToggleReact}
-          onPinMessage={onPinMessage}
+          onEditMessage={onEditMessage} // Add this prop
           currentUserUsername={currentUserUsername}
         />
       ))}

@@ -224,21 +224,98 @@ export const getRoomInfo = async (roomId, authToken, userId) => {
   }
 };
 
-export const pinMessage = async (roomId, msgId, authToken, userId) => {
+export const pinMessage = async (msgId, authToken, userId) => {
   try {
     const response = await api.post('/chat.pinMessage', {
-      roomId,
       messageId: msgId,
     }, {
       headers: getAuthHeaders(authToken, userId),
     });
     return {
       success: response.data.success,
+      message: response.data.message,
     };
   } catch (error) {
     return {
       success: false,
       error: error.response?.data?.error || 'Failed to pin message',
+    };
+  }
+};
+
+export const spotlightSearch = async (query, authToken, userId) => {
+  try {
+    const response = await api.get(`/spotlight?query=${encodeURIComponent(query)}`, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return {
+      success: true,
+      users: response.data.users,
+      rooms: response.data.rooms,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to search',
+    };
+  }
+};
+
+export const joinChannel = async (roomId, authToken, userId) => {
+  try {
+    const response = await api.post('/channels.join', {
+      roomId,
+    }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return {
+      success: response.data.success,
+      room: response.data.channel,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to join channel',
+    };
+  }
+};
+
+export const createDM = async (username, authToken, userId) => {
+  try {
+    const response = await api.post('/im.create', {
+      username,
+    }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return {
+      success: response.data.success,
+      room: response.data.room,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to create DM',
+    };
+  }
+};
+
+export const updateMessage = async (roomId, msgId, newText, authToken, userId) => {
+  try {
+    const response = await api.post('/chat.update', {
+      roomId,
+      msgId,
+      text: newText,
+    }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return {
+      success: response.data.success,
+      message: response.data.message,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to update message',
     };
   }
 };

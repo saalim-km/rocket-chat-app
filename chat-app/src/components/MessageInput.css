@@ -1,20 +1,21 @@
+/* src/components/MessageInput.css */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
 .message-input-container {
-  padding: 20px 24px;
-  background: white;
-  border-top: 1px solid #e2e8f0;
-  backdrop-filter: blur(10px);
+  padding: 16px 24px;
+  background: #ffffff;
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.1);
+  font-family: 'Roboto', sans-serif;
 }
 
 .error-message {
-  background: linear-gradient(135deg, #fed7d7, #feb2b2);
-  color: #c53030;
-  padding: 12px 16px;
-  border-radius: 12px;
+  background-color: #ffebee;
+  color: #d32f2f;
+  padding: 12px;
+  border-radius: 4px;
   margin-bottom: 16px;
   font-size: 14px;
-  font-weight: 500;
-  border-left: 4px solid #e53e3e;
-  box-shadow: 0 2px 8px rgba(229, 62, 62, 0.1);
+  border: 1px solid #ef9a9a;
 }
 
 .message-input-form {
@@ -23,21 +24,16 @@
 
 .input-wrapper {
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  background: #f7fafc;
-  border: 2px solid #e2e8f0;
-  border-radius: 24px;
-  padding: 12px 16px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  align-items: center;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: border-color 0.3s ease;
 }
 
 .input-wrapper:focus-within {
-  border-color: #667eea;
-  background: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
-  transform: translateY(-1px);
+  border-color: #3f51b5; /* Indigo */
 }
 
 .message-textarea {
@@ -46,107 +42,56 @@
   background: transparent;
   resize: none;
   outline: none;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
   max-height: 120px;
   min-height: 24px;
-  font-family: inherit;
-  padding: 4px 8px;
-  color: #2d3748;
+  font-family: 'Roboto', sans-serif;
+  padding: 8px;
 }
 
 .message-textarea::placeholder {
-  color: #a0aec0;
-}
-
-.file-input-container {
-  position: relative;
-  display: flex;
-  align-items: center;
+  color: #757575;
 }
 
 .file-input {
-  position: absolute;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.file-input-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-left: 12px;
   padding: 8px;
-  border-radius: 8px;
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.file-input-label:hover {
-  background: rgba(102, 126, 234, 0.2);
-  transform: scale(1.05);
-}
-
-.file-preview {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #edf2f7;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  font-size: 14px;
-  color: #4a5568;
-}
-
-.file-preview button {
-  background: none;
-  border: none;
-  color: #e53e3e;
-  cursor: pointer;
-  padding: 4px;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
-}
-
-.file-preview button:hover {
-  background: rgba(229, 62, 62, 0.1);
+  font-size: 14px;
 }
 
 .send-button {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+  background: #3f51b5; /* Indigo */
+  color: #ffffff;
   border: none;
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  margin-left: 12px;
 }
 
 .send-button:hover:not(:disabled) {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: #303f9f;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .send-button:disabled {
-  background: #cbd5e0;
+  background: #bdbdbd;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 .sending-spinner {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
+  border-top: 2px solid #ffffff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -154,25 +99,4 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .message-input-container {
-    padding: 16px 20px;
-  }
-  
-  .input-wrapper {
-    padding: 10px 14px;
-    gap: 10px;
-  }
-  
-  .message-textarea {
-    font-size: 14px;
-  }
-  
-  .send-button {
-    width: 40px;
-    height: 40px;
-  }
 }

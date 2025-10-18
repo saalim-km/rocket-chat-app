@@ -1,7 +1,7 @@
 // src/components/ChatLayout.js
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getRooms, getMessages, deleteMessage, reactToMessage } from '../services/rocketchat';
+import { getRooms, getMessages, deleteMessage, reactToMessage, updateMessage } from '../services/rocketchat';
 import RoomList from './RoomList';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
@@ -14,6 +14,11 @@ const ChatLayout = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteMsgId, setDeleteMsgId] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editMsgId, setEditMsgId] = useState(null);
+  const [editMessageText, setEditMessageText] = useState('');
 
   // Load rooms on mount
   useEffect(() => {
@@ -25,7 +30,6 @@ const ChatLayout = () => {
         console.log(result.rooms);
         if (result.success) {
           setRooms(result.rooms);
-          // Select the first room by default
           if (result.rooms.length > 0) {
             setCurrentRoom(result.rooms[0]);
           }
@@ -50,7 +54,7 @@ const ChatLayout = () => {
       try {
         const result = await getMessages(currentRoom._id, authToken, userId, 50, currentRoom.t);
         if (result.success) {
-          setMessages(result.messages.reverse()); // Reverse to show oldest first
+          setMessages(result.messages.reverse());
         } else {
           setError(result.error);
         }
@@ -72,7 +76,6 @@ const ChatLayout = () => {
         if (result.success) {
           const newMessages = result.messages.reverse();
           setMessages(prevMessages => {
-            // Only update if we have new messages or changes
             if (newMessages.length !== prevMessages.length || JSON.stringify(newMessages) !== JSON.stringify(prevMessages)) {
               return newMessages;
             }
@@ -97,22 +100,64 @@ const ChatLayout = () => {
     setMessages(prevMessages => [...prevMessages, message]);
   };
 
-  const handleDeleteMessage = async (msgId) => {
-    if (!currentRoom) return;
+  const openDeleteModal = (msgId) => {
+    setDeleteMsgId(msgId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!currentRoom || !deleteMsgId) return;
     
-    const result = await deleteMessage(currentRoom._id, msgId, authToken, userId);
+    const result = await deleteMessage(currentRoom._id, deleteMsgId, authToken, userId);
     if (result.success) {
-      setMessages(prevMessages => prevMessages.filter(m => m._id !== msgId));
+      setMessages(prevMessages => prevMessages.filter(m => m._id !== deleteMsgId));
     } else {
       console.error('Delete failed:', result.error);
-      // Optionally show error to user
     }
+    setIsDeleteModalOpen(false);
+    setDeleteMsgId(null);
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteModalOpen(false);
+    setDeleteMsgId(null);
+  };
+
+  const openEditModal = (msgId, currentText) => {
+    setEditMsgId(msgId);
+    setEditMessageText(currentText);
+    setIsEditModalOpen(true);
+  };
+
+  const confirmEdit = async () => {
+    if (!currentRoom || !editMsgId || !editMessageText.trim()) return;
+    
+    const result = await updateMessage(currentRoom._id, editMsgId, editMessageText, authToken, userId);
+    if (result.success) {
+      const msgIndex = messages.findIndex(m => m._id === editMsgId);
+      if (msgIndex !== -1) {
+        const updatedMsg = { ...messages[msgIndex], msg: editMessageText, editedAt: new Date(), edited: true };
+        const newMessages = [...messages];
+        newMessages[msgIndex] = updatedMsg;
+        setMessages(newMessages);
+      }
+    } else {
+      console.error('Edit failed:', result.error);
+    }
+    setIsEditModalOpen(false);
+    setEditMsgId(null);
+    setEditMessageText('');
+  };
+
+  const cancelEdit = () => {
+    setIsEditModalOpen(false);
+    setEditMsgId(null);
+    setEditMessageText('');
   };
 
   const handleToggleReact = async (msgId, emoji) => {
     if (!user?.username) return;
     
-    // Find the message
     const msgIndex = messages.findIndex(m => m._id === msgId);
     if (msgIndex === -1) return;
     
@@ -126,7 +171,6 @@ const ChatLayout = () => {
     
     const result = await reactToMessage(msgId, emoji, shouldReact, authToken, userId);
     if (result.success) {
-      // Update local state
       if (shouldReact) {
         if (!userReactions.usernames.includes(user.username)) {
           userReactions.usernames.push(user.username);
@@ -211,8 +255,9 @@ const ChatLayout = () => {
                 messages={messages} 
                 currentUserId={userId}
                 currentUserUsername={user?.username}
-                onDeleteMessage={handleDeleteMessage}
+                onDeleteMessage={openDeleteModal}
                 onToggleReact={handleToggleReact}
+                onEditMessage={openEditModal}
               />
               
               <MessageInput 
@@ -228,6 +273,37 @@ const ChatLayout = () => {
           )}
         </div>
       </div>
+
+      {isDeleteModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Confirm Delete</h3>
+            <p>Are you sure you want to delete this message?</p>
+            <div className="modal-actions">
+              <button onClick={cancelDelete} className="modal-button cancel">Cancel</button>
+              <button onClick={confirmDelete} className="modal-button delete">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Edit Message</h3>
+            <textarea
+              value={editMessageText}
+              onChange={(e) => setEditMessageText(e.target.value)}
+              className="edit-textarea"
+              rows="3"
+            />
+            <div className="modal-actions">
+              <button onClick={cancelEdit} className="modal-button cancel">Cancel</button>
+              <button onClick={confirmEdit} className="modal-button save" disabled={!editMessageText.trim()}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,260 +1,197 @@
+/* src/components/Message.css */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
 .message-container {
+  display: flex;
+  align-items: flex-start;
   margin-bottom: 16px;
-  padding: 0 8px;
+  font-family: 'Roboto', sans-serif;
 }
 
 .message-container.own {
-  align-items: flex-end;
+  justify-content: flex-end;
 }
 
 .message-container.other {
-  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .date-separator {
   text-align: center;
   margin: 24px 0;
-  color: #718096;
-  font-size: 13px;
+  color: #757575;
+  font-size: 14px;
   font-weight: 500;
-  position: relative;
-}
-
-.date-separator::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: #e2e8f0;
-  z-index: 1;
-}
-
-.date-separator span {
-  background: white;
-  padding: 0 16px;
-  position: relative;
-  z-index: 2;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
 }
 
 .message-bubble {
   max-width: 70%;
-  background: white;
-  border-radius: 18px;
+  background: #ffffff;
+  border-radius: 8px;
   padding: 12px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .message-container.own .message-bubble {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-}
-
-.message-bubble:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  background: #e8eaf6; /* Light indigo for own messages */
 }
 
 .message-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .sender-name {
-  font-weight: 600;
-  color: #2d3748;
+  font-weight: 500;
   font-size: 14px;
-}
-
-.message-container.own .sender-name {
-  color: rgba(255, 255, 255, 0.9);
+  color: #212121;
 }
 
 .message-time {
-  font-size: 11px;
-  color: #a0aec0;
-  font-weight: 500;
-}
-
-.message-container.own .message-time {
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  color: #757575;
 }
 
 .message-content {
-  font-size: 14px;
+  font-size: 16px;
+  color: #212121;
   line-height: 1.5;
-  color: #4a5568;
-  word-wrap: break-word;
-}
-
-.message-container.own .message-content {
-  color: white;
 }
 
 .message-attachments {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .attachment {
   margin-bottom: 8px;
-  padding: 12px;
-  background: #f7fafc;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
 }
 
 .attachment-image {
-  max-width: 100%;
+  max-width: 300px;
   max-height: 300px;
-  border-radius: 8px;
   object-fit: cover;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.attachment-title {
-  font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 4px;
-  font-size: 14px;
-}
-
-.attachment-description {
-  color: #718096;
-  font-size: 13px;
-  line-height: 1.4;
+  border-radius: 8px;
 }
 
 .attachment-audio,
 .attachment-video {
   width: 100%;
   max-width: 400px;
-  border-radius: 8px;
+  border-radius: 4px;
+}
+
+.attachment-title {
+  font-weight: 500;
+  font-size: 14px;
+  color: #212121;
   margin-top: 8px;
+}
+
+.attachment-description {
+  font-size: 12px;
+  color: #757575;
+  margin-top: 4px;
 }
 
 .reactions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
+  margin-top: 8px;
+  gap: 8px;
 }
 
 .reaction {
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  background: #f5f5f5;
   border-radius: 16px;
   padding: 4px 8px;
+  font-size: 14px;
   cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.reaction:hover {
-  background: rgba(102, 126, 234, 0.15);
-  transform: scale(1.05);
+  transition: background-color 0.3s ease;
 }
 
 .reaction.reacted {
-  background: rgba(102, 126, 234, 0.2);
-  border-color: #667eea;
-}
-
-.reaction-count {
-  font-weight: 600;
-  color: #4a5568;
+  background: #bbdefb; /* Light blue for reacted state */
+  border: 1px solid #2196f3; /* Blue border */
 }
 
 .reaction-buttons {
   display: flex;
-  gap: 8px;
   margin-top: 8px;
-  padding: 8px;
-  background: #f7fafc;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  gap: 12px;
 }
 
 .reaction-buttons span {
   cursor: pointer;
-  font-size: 18px;
-  padding: 4px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  font-size: 16px;
+  transition: transform 0.2s ease;
 }
 
 .reaction-buttons span:hover {
-  background: rgba(102, 126, 234, 0.1);
   transform: scale(1.2);
 }
 
-.message-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.message-bubble:hover .message-actions {
-  opacity: 1;
-}
-
-.delete-button,
-.pin-button {
+.delete-button {
   background: none;
   border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
+  color: #f44336;
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.delete-button {
-  color: #e53e3e;
-  background: rgba(229, 62, 62, 0.1);
+  text-transform: uppercase;
+  margin-left: 12px;
+  transition: color 0.3s ease;
 }
 
 .delete-button:hover {
-  background: rgba(229, 62, 62, 0.2);
+  color: #d32f2f;
 }
 
 .pin-button {
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  background: none;
+  border: none;
+  color: #3f51b5; /* Indigo */
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-left: 12px;
+  transition: color 0.3s ease;
 }
 
-.pin-button:hover:not(:disabled) {
-  background: rgba(102, 126, 234, 0.2);
+.pin-button:hover {
+  color: #303f9f;
 }
 
 .pin-button:disabled {
-  color: #a0aec0;
+  color: #bdbdbd;
   cursor: not-allowed;
-  background: rgba(160, 174, 192, 0.1);
+}
+/* Add to src/components/Message.css */
+
+/* Edit button */
+.edit-button {
+  background: none;
+  border: none;
+  color: #3f51b5; /* Indigo */
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-left: 12px;
+  transition: color 0.3s ease;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-  .message-bubble {
-    max-width: 85%;
-    padding: 10px 14px;
-  }
-  
-  .reaction-buttons {
-    padding: 6px;
-  }
-  
-  .message-actions {
-    opacity: 1; /* Always show on mobile */
-  }
+.edit-button:hover {
+  color: #303f9f; /* Darker indigo */
+}
+
+/* Edited label */
+.edited-label {
+  font-size: 12px;
+  color: #757575;
+  margin-left: 8px;
 }

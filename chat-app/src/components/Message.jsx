@@ -2,7 +2,7 @@
 import React from 'react';
 import './Message.css';
 
-const Message = ({ message, isOwn, onDeleteMessage, onToggleReact, currentUserUsername, previousMessage }) => {
+const Message = ({ message, isOwn, onDeleteMessage, onToggleReact, onEditMessage, currentUserUsername, previousMessage }) => {
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -39,7 +39,6 @@ const Message = ({ message, isOwn, onDeleteMessage, onToggleReact, currentUserUs
 
   const showDate = shouldShowDate(message, previousMessage);
 
-  // Simple emoji mapping - add more as needed
   const emojiMap = {
     thumbsup: '👍',
     heart: '❤️',
@@ -65,6 +64,7 @@ const Message = ({ message, isOwn, onDeleteMessage, onToggleReact, currentUserUs
         
         <div className="message-content">
           {message.msg}
+          {message.edited && <span className="edited-label"> (Edited)</span>}
         </div>
         
         {message.attachments && message.attachments.length > 0 && (
@@ -126,12 +126,20 @@ const Message = ({ message, isOwn, onDeleteMessage, onToggleReact, currentUserUs
       </div>
       
       {isOwn && (
-        <button 
-          className="delete-button" 
-          onClick={() => onDeleteMessage(message._id)}
-        >
-          Delete
-        </button>
+        <>
+          <button 
+            className="delete-button" 
+            onClick={() => onDeleteMessage(message._id)}
+          >
+            Delete
+          </button>
+          <button 
+            className="edit-button" 
+            onClick={() => onEditMessage(message._id, message.msg)}
+          >
+            Edit
+          </button>
+        </>
       )}
     </div>
   );
