@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Check for existing auth and admin status on mount
+  // Load initial auth state from localStorage
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const userId = localStorage.getItem('userId');
@@ -27,35 +27,41 @@ export const AuthProvider = ({ children }) => {
     const storedIsAdmin = localStorage.getItem('isAdmin');
 
     if (token && userId && userData) {
+      console.log('Restoring auth state from localStorage:', { token, userId, storedIsAdmin });
       setAuthToken(token);
       setUserId(userId);
       setUser(JSON.parse(userData));
       setIsAdmin(storedIsAdmin === 'true');
     }
     setLoading(false);
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
-  // Fetch user info to verify admin status when authToken and userId are available
+  // Fetch user info to validate auth and admin status
   useEffect(() => {
     const fetchUserInfo = async () => {
       if (authToken && userId) {
+        console.log('Fetching user info for:', { authToken, userId });
         const result = await getUserInfo(authToken, userId);
         if (result.success) {
+          console.log('User info fetched:', { user: result.user, isAdmin: result.isAdmin });
           setUser(result.user);
           setIsAdmin(result.isAdmin);
           localStorage.setItem('user', JSON.stringify(result.user));
           localStorage.setItem('isAdmin', result.isAdmin.toString());
         } else {
-          // Handle invalid token/userId by logging out
+          console.error('Invalid auth token/userId, logging out:', result.error);
           logout();
         }
       }
+      setLoading(false);
     };
+
     fetchUserInfo();
-  }, [authToken, userId]);
+  }, [authToken, userId]); // Only re-run when authToken or userId changes
 
   const login = (authData) => {
     const { authToken, userId, user, isAdmin } = authData;
+    console.log('Logging in:', { authToken, userId, isAdmin });
     setAuthToken(authToken);
     setUserId(userId);
     setUser(user);
@@ -70,6 +76,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     if (authToken && userId) {
+      console.log('Logging out:', { authToken, userId });
       await apiLogout(authToken, userId);
     }
     setAuthToken(null);
@@ -95,9 +102,5 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!authToken,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -3,10 +3,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { createUser } from '../services/rocketchat';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Users, MessageSquare } from 'lucide-react';
+import { Users, MessageSquare, LogOut } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const { authToken, userId, isAdmin, user, logout } = useAuth();
+  const { authToken, userId, isAdmin, user, logout, loading } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -17,12 +17,29 @@ const AdminDashboard = () => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
 
-  // Redirect non-admins to chat or login
+  // Log auth state for debugging
+  console.log('authToken and userId', { authToken, userId, isAdmin });
+
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#1f2329] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect non-authenticated users to login
   if (!authToken || !userId) {
     return <Navigate to="/login" />;
   }
+
+  // Redirect non-admins to chat
   if (!isAdmin) {
     return <Navigate to="/chat" />;
   }
@@ -45,7 +62,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    setLoading(true);
+    setFormLoading(true);
 
     const userData = {
       name: formData.name,
@@ -53,7 +70,7 @@ const AdminDashboard = () => {
       email: formData.email,
       password: formData.password,
       roles: formData.roles,
-      verified: true, // Auto-verify email for simplicity
+      verified: true,
       joinDefaultChannels: true,
     };
 
@@ -70,7 +87,7 @@ const AdminDashboard = () => {
     } else {
       setError(result.error);
     }
-    setLoading(false);
+    setFormLoading(false);
   };
 
   const handleNavigateToChat = () => {
@@ -198,10 +215,10 @@ const AdminDashboard = () => {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={formLoading}
               className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
             >
-              {loading ? 'Creating...' : 'Create User'}
+              {formLoading ? 'Creating...' : 'Create User'}
             </button>
           </form>
         </div>
