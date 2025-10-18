@@ -1,4 +1,6 @@
+// src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getUserInfo, logout as apiLogout } from '../services/rocketchat';
 
 const AuthContext = createContext();
 
@@ -14,49 +16,79 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authToken, setAuthToken] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Check for existing auth on mount
+  // Check for existing auth and admin status on mount
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const userId = localStorage.getItem('userId');
     const userData = localStorage.getItem('user');
+    const storedIsAdmin = localStorage.getItem('isAdmin');
 
     if (token && userId && userData) {
       setAuthToken(token);
       setUserId(userId);
       setUser(JSON.parse(userData));
+      setIsAdmin(storedIsAdmin === 'true');
     }
     setLoading(false);
   }, []);
 
+  // Fetch user info to verify admin status when authToken and userId are available
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      if (authToken && userId) {
+        const result = await getUserInfo(authToken, userId);
+        if (result.success) {
+          setUser(result.user);
+          setIsAdmin(result.isAdmin);
+          localStorage.setItem('user', JSON.stringify(result.user));
+          localStorage.setItem('isAdmin', result.isAdmin.toString());
+        } else {
+          // Handle invalid token/userId by logging out
+          logout();
+        }
+      }
+    };
+    fetchUserInfo();
+  }, [authToken, userId]);
+
   const login = (authData) => {
-    const { authToken, userId, user } = authData;
+    const { authToken, userId, user, isAdmin } = authData;
     setAuthToken(authToken);
     setUserId(userId);
     setUser(user);
-    
+    setIsAdmin(isAdmin);
+
     // Store in localStorage
     localStorage.setItem('authToken', authToken);
     localStorage.setItem('userId', userId);
     localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('isAdmin', isAdmin.toString());
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (authToken && userId) {
+      await apiLogout(authToken, userId);
+    }
     setAuthToken(null);
     setUserId(null);
     setUser(null);
-    
+    setIsAdmin(false);
+
     // Clear localStorage
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('user');
+    localStorage.removeItem('isAdmin');
   };
 
   const value = {
     user,
     authToken,
     userId,
+    isAdmin,
     loading,
     login,
     logout,

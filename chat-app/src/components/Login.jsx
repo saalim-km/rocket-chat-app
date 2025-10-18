@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { login as loginAPI } from '../services/rocketchat';
-import './Login.css';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -17,7 +16,7 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    setError(''); // Clear error when user types
+    setError('');
   };
 
   const handleSubmit = async (e) => {
@@ -27,7 +26,7 @@ const Login = () => {
 
     try {
       const result = await loginAPI(formData.username, formData.password);
-      
+
       if (result.success) {
         login({
           authToken: result.authToken,
@@ -45,14 +44,16 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h1>Rocket.Chat Login</h1>
-        <p className="login-subtitle">Connect to your local Rocket.Chat server</p>
-        
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="username">Username or Email</label>
+    <div className="min-h-screen bg-[#1f2329] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-[#2f343d] rounded-lg shadow-xl p-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Rocket.Chat Login</h1>
+        <p className="text-gray-400 mb-8">Connect to your local Rocket.Chat server</p>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+              Username or Email
+            </label>
             <input
               type="text"
               id="username"
@@ -62,11 +63,14 @@ const Login = () => {
               required
               disabled={loading}
               placeholder="Enter your username or email"
+              className="w-full px-4 py-3 bg-[#1f2329] border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
             />
           </div>
-          
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+              Password
+            </label>
             <input
               type="password"
               id="password"
@@ -76,25 +80,26 @@ const Login = () => {
               required
               disabled={loading}
               placeholder="Enter your password"
+              className="w-full px-4 py-3 bg-[#1f2329] border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
             />
           </div>
-          
+
           {error && (
-            <div className="error-message">
+            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 text-red-400 text-sm">
               {error}
             </div>
           )}
-          
-          <button 
-            type="submit" 
-            className="login-button"
+
+          <button
+            type="submit"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={loading}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        
-        <div className="login-help">
+
+        <div className="mt-6 text-center text-sm text-gray-400">
           <p>Make sure your Rocket.Chat server is running on localhost:3000</p>
         </div>
       </div>

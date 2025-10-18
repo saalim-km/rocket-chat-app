@@ -1,8 +1,7 @@
-// src/components/MessageInput.js
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { sendMessage, uploadFile } from '../services/rocketchat';
-import './MessageInput.css';
+import { Send, Smile, Paperclip } from 'lucide-react';
 
 const MessageInput = ({ roomId, onNewMessage }) => {
   const [message, setMessage] = useState('');
@@ -13,9 +12,9 @@ const MessageInput = ({ roomId, onNewMessage }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if ((!message.trim() && !file) || sending) return;
-    
+
+    if ((!message.trim() && !file) || sending || !authToken || !userId) return;
+
     setSending(true);
     setError('');
 
@@ -68,57 +67,67 @@ const MessageInput = ({ roomId, onNewMessage }) => {
   };
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
+    const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
     }
   };
 
   return (
-    <div className="message-input-container">
+    <div className="border-t border-gray-700 bg-[#2f343d]">
       {error && (
-        <div className="error-message">
+        <div className="px-6 py-2 bg-red-500/10 border-b border-red-500/50 text-red-400 text-sm">
           {error}
         </div>
       )}
-      
-      <form onSubmit={handleSubmit} className="message-input-form">
-        <div className="input-wrapper">
+
+      <form onSubmit={handleSubmit} className="p-4">
+        <div className="flex items-end gap-2 bg-[#1f2329] rounded-lg border border-gray-700 focus-within:border-emerald-500 transition-colors">
+          <button
+            type="button"
+            className="flex-shrink-0 p-3 text-gray-400 hover:text-white transition-colors"
+            title="Add emoji"
+          >
+            <Smile size={20} />
+          </button>
+
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type a message or upload a file..."
+            placeholder="Type a message..."
             disabled={sending}
-            className="message-textarea"
-            rows="1"
+            className="flex-1 bg-transparent text-white placeholder-gray-500 py-3 px-0 resize-none outline-none max-h-32"
+            rows={1}
           />
-          <input
-            type="file"
-            onChange={handleFileChange}
-            className="file-input"
-            disabled={sending}
-          />
+
+          <label className="flex-shrink-0 p-3 text-gray-400 hover:text-white transition-colors cursor-pointer">
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="hidden"
+              disabled={sending}
+            />
+            <Paperclip size={20} />
+          </label>
+
           <button
             type="submit"
-            disabled={!message.trim() && !file || sending}
-            className="send-button"
+            disabled={(!message.trim() && !file) || sending}
+            className="flex-shrink-0 p-3 text-emerald-500 hover:text-emerald-400 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
           >
             {sending ? (
-              <div className="sending-spinner"></div>
+              <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
             ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Send size={20} />
             )}
           </button>
         </div>
+        {file && (
+          <div className="mt-2 text-sm text-gray-400">
+            Selected file: {file.name}
+          </div>
+        )}
       </form>
     </div>
   );

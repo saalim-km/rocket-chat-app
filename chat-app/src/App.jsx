@@ -2,7 +2,6 @@ import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import ChatLayout from './components/ChatLayout';
-import './App.css';
 
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();

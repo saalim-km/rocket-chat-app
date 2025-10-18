@@ -13,10 +13,13 @@
     "@rocket.chat/fuselage": "^0.66.4",
     "@rocket.chat/fuselage-hooks": "^0.38.0",
     "@rocket.chat/icons": "^0.44.0",
+    "@tailwindcss/vite": "^4.1.14",
     "axios": "^1.12.2",
+    "lucide-react": "^0.546.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-virtuoso": "^4.14.1"
+    "react-virtuoso": "^4.14.1",
+    "tailwindcss": "^4.1.14"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

@@ -52,6 +52,7 @@ export const getUserInfo = async (authToken, userId) => {
     return {
       success: true,
       user: response.data,
+      isAdmin: response.data.roles.includes('admin'),
     };
   } catch (error) {
     return {
@@ -331,6 +332,42 @@ export const logout = async (authToken, userId) => {
     return {
       success: false,
       error: error.response?.data?.error || 'Logout failed',
+    };
+  }
+};
+
+export const unpinMessage = async (msgId, authToken, userId) => {
+  try {
+    const response = await api.post('/chat.unPinMessage', {
+      messageId: msgId,
+    }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return {
+      success: response.data.success,
+      message: response.data.message,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to unpin message',
+    };
+  }
+};
+
+export const createUser = async (userData, authToken, userId) => {
+  try {
+    const response = await api.post('/users.create', userData, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return {
+      success: response.data.success,
+      user: response.data.user,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to create user',
     };
   }
 };
