@@ -1,118 +1,349 @@
-// src/components/Profile.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Edit } from 'lucide-react';
+import { Upload, Mail, LogOut, Edit, AlertCircle } from 'lucide-react';
 import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "../../components/ui/avatar";
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
 import { Button } from "../../components/ui/button";
+import { Label } from "../../components/ui/label";
+import { Avatar, AvatarImage, AvatarFallback } from "../../components/ui/avatar";
+import { setAvatar, updateOwnBasicInfo, sendVerificationEmail, logoutOtherClients } from '../services/rocketchat';
 
 const Profile = () => {
-  const { username, logout, user } = useAuth();
+  const { authToken, userId, user, updateUser } = useAuth();
   const navigate = useNavigate();
-  const [status, setStatus] = useState(user?.status || 'online');
-  const [isEditing, setIsEditing] = useState(false);
-  const [newStatus, setNewStatus] = useState(user?.status || 'online');
 
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [bio, setBio] = useState('');
+  const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Load user data on mount/update
   useEffect(() => {
-    setStatus(user?.status || 'online');
-    setNewStatus(user?.status || 'online');
+    if (user) {
+      setName(user.name || '');
+      setUsername(user.username || '');
+      setStatusMessage(user.statusText || '');
+      setNickname(user.nickname || '');
+      setBio(user.bio || '');
+      setEmail(user.emails?.[0]?.address || '');
+      setAvatarUrl(user.avatarUrl || '');
+    }
   }, [user]);
 
-  const handleStatusChange = (e) => {
-    setNewStatus(e.target.value);
+  // Clear messages after 5s
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError('');
+        setSuccess('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, success]);
+
+  const hasUsernameChanged = username !== (user?.username || '');
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile && !avatarUrl) return;
+    setLoading(true);
+    setError('');
+    try {
+      const result = avatarFile
+        ? await setAvatar(avatarFile, authToken, userId, 'file')
+        : await setAvatar(avatarUrl, authToken, userId, 'url');
+      if (result.success) {
+        updateUser({ ...user, avatarUrl: result.avatarUrl || avatarUrl });
+        setSuccess('Avatar updated successfully');
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Failed to update avatar');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveStatus = () => {
-    setStatus(newStatus);
-    setIsEditing(false);
-    // Add API call here if integrated with backend
+  const handleUpdateProfile = async () => {
+    // Validate password if username changed
+    if (hasUsernameChanged && !currentPassword) {
+      setError('Current password is required to change username');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    // Build conditional payload - only changed fields
+    const payload = {};
+    if (name !== (user?.name || '')) payload.name = name;
+    if (hasUsernameChanged) payload.username = username;
+    if (statusMessage !== (user?.statusText || '')) payload.statusText = statusMessage;
+    // COMMENTED: bio/nickname - require custom fields setup in admin
+    // if (bio !== (user?.bio || '')) payload.bio = bio;
+    // if (nickname !== (user?.nickname || '')) payload.nickname = nickname;
+    if (hasUsernameChanged) payload.currentPassword = currentPassword;
+
+    try {
+      const result = await updateOwnBasicInfo(payload, authToken, userId);
+      if (result.success) {
+        // Update local user only with sent fields
+        const updatedUser = { ...user };
+        if (payload.name) updatedUser.name = name;
+        if (payload.username) updatedUser.username = username;
+        if (payload.statusText) updatedUser.statusText = statusMessage;
+        // if (payload.bio) updatedUser.bio = bio;
+        // if (payload.nickname) updatedUser.nickname = nickname;
+        updateUser(updatedUser);
+        setSuccess('Profile updated successfully');
+        setCurrentPassword('');
+        setShowPasswordInput(false);
+      } else {
+        setError(result.error || 'Failed to update profile');
+      }
+    } catch (err) {
+      console.log(err);
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const statusOptions = [
-    { value: 'online', label: 'Online', color: 'text-emerald-400' },
-    { value: 'away', label: 'Away', color: 'text-yellow-400' },
-    { value: 'offline', label: 'Offline', color: 'text-gray-500' },
-  ];
+  const handleResendVerification = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await sendVerificationEmail(authToken, userId);
+      if (result.success) {
+        setSuccess('Verification email resent successfully');
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Failed to resend verification email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogoutOther = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await logoutOtherClients(authToken, userId);
+      if (result.success) {
+        setSuccess('Logged out from other locations');
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Failed to logout from other locations');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#1f2329] p-6 text-white">
-      <h1 className="text-3xl font-bold mb-8">Profile</h1>
-      <div className="max-w-2xl mx-auto bg-[#2f343d] rounded-lg p-6 shadow-lg">
-        {/* User Avatar and Info */}
-        <div className="flex items-center gap-6 mb-8">
-          <Avatar className="h-20 w-20">
-            <AvatarImage src={user?.avatarUrl || "https://via.placeholder.com/80"} alt={username || "User"} />
-            <AvatarFallback>{username ? username[0].toUpperCase() : "U"}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h2 className="text-2xl font-semibold">{username || 'Unknown User'}</h2>
-            <div className="flex items-center gap-2 mt-2">
-              <span className={`text-sm ${statusOptions.find(opt => opt.value === status)?.color || 'text-gray-500'}`}>
-                {statusOptions.find(opt => opt.value === status)?.label || 'Offline'}
-              </span>
-              {isEditing ? (
-                <>
-                  <select
-                    value={newStatus}
-                    onChange={handleStatusChange}
-                    className="bg-[#1f2329] border border-gray-700 rounded-md px-3 py-1 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    {statusOptions.map((option) => (
-                      <option key={option.value} value={option.value} className={option.color}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    onClick={handleSaveStatus}
-                    className="ml-2 bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    onClick={() => setIsEditing(false)}
-                    variant="secondary"
-                    className="ml-2 bg-gray-700 hover:bg-gray-600"
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  onClick={() => setIsEditing(true)}
-                  variant="outline"
-                  className="ml-2 flex items-center gap-1 bg-[#1f2329] hover:bg-gray-700"
-                >
-                  <Edit size={14} /> Edit Status
-                </Button>
+    <div className="min-h-screen bg-[#1f2329] p-6">
+      <Card className="bg-[#2f343d] border-0 shadow-lg max-w-2xl mx-auto">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-white">Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Avatar Upload */}
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={user?.avatarUrl || "https://via.placeholder.com/64"} alt={username} />
+              <AvatarFallback>{username[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <Label htmlFor="avatar" className="block text-sm font-medium text-gray-300 mb-1">
+                Profile Picture
+              </Label>
+              <Input
+                id="avatar"
+                type="file"
+                onChange={(e) => setAvatarFile(e.target.files[0])}
+                className="bg-[#1f2329] border-gray-700 text-white"
+                accept="image/*"
+              />
+              <Input
+                type="text"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="Use URL for avatar"
+                className="mt-2 bg-[#1f2329] border-gray-700 text-white"
+              />
+              <Button
+                onClick={handleAvatarUpload}
+                className="mt-2 bg-emerald-600 hover:bg-emerald-700"
+                disabled={loading || (!avatarFile && !avatarUrl)}
+              >
+                <Upload className="mr-2 h-4 w-4" /> Upload Avatar
+              </Button>
+            </div>
+          </div>
+
+          {/* Name and Username */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">
+                Name
+              </Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-[#1f2329] border-gray-700 text-white"
+                placeholder="Enter name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
+                Username
+              </Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (hasUsernameChanged) setShowPasswordInput(true);
+                }}
+                className="bg-[#1f2329] border-gray-700 text-white"
+                placeholder="Enter username"
+              />
+              {hasUsernameChanged && (
+                <p className="text-xs text-yellow-400 mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} /> Password required to confirm change
+                </p>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Account Details */}
-        <div className="space-y-6">
-          <div className="bg-[#1f2329] p-4 rounded-lg">
-            <h3 className="text-lg font-medium mb-2">Account Information</h3>
-            <p className="text-gray-400">Username: <span className="text-white">{username || 'Not set'}</span></p>
-            <p className="text-gray-400">Email: <span className="text-white">{user?.emails?.[0]?.address || 'Not set'}</span></p>
+          {/* Current Password Field (conditional) */}
+          {showPasswordInput && (
+            <div>
+              <Label htmlFor="currentPassword" className="block text-sm font-medium text-gray-300 mb-1">
+                Current Password (for username change)
+              </Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="bg-[#1f2329] border-gray-700 text-white"
+                placeholder="Enter current password"
+              />
+            </div>
+          )}
+
+          {/* Status Message */}
+          <div>
+            <Label htmlFor="statusMessage" className="block text-sm font-medium text-gray-300 mb-1">
+              Status Message
+            </Label>
+            <Input
+              id="statusMessage"
+              value={statusMessage}
+              onChange={(e) => setStatusMessage(e.target.value)}
+              className="bg-[#1f2329] border-gray-700 text-white"
+              placeholder="What are you doing right now?"
+            />
           </div>
-        </div>
 
-        {/* Logout Button */}
-        <div className="mt-8">
+          {/* Nickname */}
+          <div>
+            <Label htmlFor="nickname" className="block text-sm font-medium text-gray-300 mb-1">
+              Nickname
+            </Label>
+            <Input
+              id="nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="bg-[#1f2329] border-gray-700 text-white"
+              placeholder="Enter nickname"
+            />
+            <p className="text-xs text-gray-500 mt-1">Note: Requires custom fields setup in admin to save.</p>
+          </div>
+
+          {/* Bio */}
+          <div>
+            <Label htmlFor="bio" className="block text-sm font-medium text-gray-300 mb-1">
+              Bio
+            </Label>
+            <Textarea
+              id="bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              className="bg-[#1f2329] border-gray-700 text-white"
+              placeholder="Enter bio"
+              rows={3}
+            />
+            <p className="text-xs text-gray-500 mt-1">Note: Requires custom fields setup in admin to save.</p>
+          </div>
+
+          {/* Email */}
+          <div>
+            <Label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
+              Email
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-[#1f2329] border-gray-700 text-white flex-1"
+                placeholder="Enter email"
+              />
+              <Button
+                variant="secondary"
+                onClick={handleResendVerification}
+                className="bg-gray-700 hover:bg-gray-600"
+                disabled={loading}
+              >
+                <Mail className="mr-2 h-4 w-4" /> Resend Verification
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-between">
           <Button
-            onClick={() => { logout(); navigate('/login'); }}
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+            onClick={handleUpdateProfile}
+            className="bg-emerald-600 hover:bg-emerald-700"
+            disabled={loading || (hasUsernameChanged && !currentPassword)}
           >
-            <LogOut size={16} /> Logout
+            <Edit className="mr-2 h-4 w-4" /> Update Profile
           </Button>
-        </div>
-      </div>
+          <Button
+            variant="secondary"
+            onClick={handleLogoutOther}
+            className="bg-gray-700 hover:bg-gray-600"
+            disabled={loading}
+          >
+            <LogOut className="mr-2 h-4 w-4" /> Logout from Other Locations
+          </Button>
+        </CardFooter>
+      </Card>
+      {success && <p className="mt-4 text-emerald-400">{success}</p>}
+      {error && <p className="mt-4 text-red-400">{error}</p>}
     </div>
   );
 };

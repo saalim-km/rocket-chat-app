@@ -91,6 +91,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('isAdmin');
   };
 
+  // NEW: Function to update user data locally and persist to localStorage
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   const value = {
     user,
     authToken,
@@ -99,6 +105,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    updateUser, // NEW: Expose updateUser function
     isAuthenticated: !!authToken,
   };
 

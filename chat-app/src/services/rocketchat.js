@@ -578,3 +578,53 @@ export const removeUserFromChannel = async (roomId, userIdToRemove, authToken, u
     return { success: false, error: error.response?.data?.error || 'Failed to remove user from channel' };
   }
 };
+
+export const setAvatar = async (avatar, authToken, userId, type = 'file') => {
+  try {
+    const formData = new FormData();
+    if (type === 'file') {
+      formData.append('image', avatar);
+    } else if (type === 'url') {
+      formData.append('url', avatar);
+    }
+    const response = await api.post('/users.setAvatar', formData, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return { success: response.data.success, avatarUrl: response.data.avatarUrl };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || 'Failed to set avatar' };
+  }
+};
+
+export const updateOwnBasicInfo = async (data, authToken, userId) => {
+  try {
+    const response = await api.post('/users.updateOwnBasicInfo', { data }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return { success: response.data.success };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || 'Failed to update profile' };
+  }
+};
+
+export const sendVerificationEmail = async (authToken, userId) => {
+  try {
+    const response = await api.post('/users.sendVerificationEmail', {}, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return { success: response.data.success };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || 'Failed to resend verification email' };
+  }
+};
+
+export const logoutOtherClients = async (authToken, userId) => {
+  try {
+    const response = await api.post('/users.logoutOtherClients', {}, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return { success: response.data.success };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || 'Failed to logout from other locations' };
+  }
+};
