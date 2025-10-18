@@ -42,6 +42,36 @@ export const login = async (username, password) => {
     };
   }
 };
+// export const verifyTOTP = async (username, password, totp) => {
+//   try {
+//     const response = await api.post('/login', { username, password, totp });
+//     return response.data;
+//   } catch (error) {
+//     return error.response?.data || { success: false, error: 'TOTP verification failed' };
+//   }
+// };
+
+// export const initiateTOTPSetup = async (authToken, userId) => {
+//   try {
+//     const response = await api.post('/users.createTotp', {}, {
+//       headers: { 'X-Auth-Token': authToken, 'X-User-Id': userId }
+//     });
+//     return response.data;
+//   } catch (error) {
+//     return error.response?.data || { success: false, error: 'Failed to initiate TOTP setup' };
+//   }
+// };
+
+// export const verifyTOTPSetup = async (authToken, userId, totp) => {
+//   try {
+//     const response = await api.post('/users.verifyTotp', { totp }, {
+//       headers: { 'X-Auth-Token': authToken, 'X-User-Id': userId }
+//     });
+//     return response.data;
+//   } catch (error) {
+//     return error.response?.data || { success: false, error: 'Failed to verify TOTP' };
+//   }
+// };
 
 // Get user info
 export const getUserInfo = async (authToken, userId) => {
@@ -519,5 +549,14 @@ export const getAllUsers = async (authToken, userId) => {
       success: false,
       error: error.response?.data?.error || 'Failed to get users',
     };
+  }
+};
+
+export const setUserStatus = async (status, authToken, userId) => {
+  try {
+    const response = await api.post('/users.setStatus', { status }, { headers: getAuthHeaders(authToken, userId) });
+    return { success: response.data.success };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || 'Failed to set status' };
   }
 };

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getRooms, getMessages, deleteMessage, reactToMessage, updateMessage, pinMessage, unpinMessage, getRoomMembers, searchMessages, getPinnedMessages, createChannel, createDM, spotlightSearch } from '../services/rocketchat';
-import RoomList from './RoomList';
+import { getRooms, getMessages, deleteMessage, reactToMessage, updateMessage, pinMessage, unpinMessage, getRoomMembers, searchMessages, getPinnedMessages, createChannel, createDM, spotlightSearch, setUserStatus } from '../services/rocketchat';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import { Search, LogOut, Hash, Star, User, Users, Pin, Plus } from 'lucide-react';
+import Sidebar from './Sidebar';
+import Header from './Header';
+import { Hash, User } from 'lucide-react';
 
 const ChatLayout = () => {
   const { authToken, userId, user, isAdmin, logout } = useAuth();
@@ -24,6 +25,7 @@ const ChatLayout = () => {
   const [isMembersOpen, setIsMembersOpen] = useState(false);
   const [pinnedMessages, setPinnedMessages] = useState([]);
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(user);
 
   // New states for create modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -34,6 +36,10 @@ const ChatLayout = () => {
   const [searchedUsers, setSearchedUsers] = useState([]);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
+
+  useEffect(() => {
+    setCurrentUser(user);
+  }, [user]);
 
   useEffect(() => {
     const loadRooms = async () => {
@@ -312,6 +318,15 @@ const ChatLayout = () => {
     logout();
   };
 
+  const handleStatusChange = async (newStatus) => {
+    const result = await setUserStatus(newStatus, authToken, userId);
+    if (result.success) {
+      setCurrentUser({ ...currentUser, status: newStatus });
+    } else {
+      console.error('Failed to update status:', result.error);
+    }
+  };
+
   // New handlers for create
   const validateChannelForm = () => {
     const errors = {};
@@ -547,55 +562,26 @@ const ChatLayout = () => {
 
   return (
     <div className="flex h-screen bg-[#1f2329] text-gray-200">
-      {/* Sidebar */}
-      <div className="w-64 border-r border-gray-700 flex flex-col">
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Omnichannel</h2>
-          <button onClick={() => setIsCreateModalOpen(true)} className="text-gray-400 hover:text-white transition-colors" title="Create new">
-            <Plus size={20} />
-          </button>
-        </div>
-        <RoomList rooms={rooms} currentRoom={currentRoom} onRoomSelect={handleRoomSelect} currentUsername={user?.username} />
-      </div>
+      <Sidebar 
+        rooms={rooms} 
+        currentRoom={currentRoom} 
+        onRoomSelect={handleRoomSelect} 
+        currentUsername={user?.username} 
+        onCreateOpen={() => setIsCreateModalOpen(true)} 
+      />
 
       {/* Main Chat */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        {currentRoom ? (
-          <div className="h-16 bg-[#2f343d] border-b border-gray-700 flex items-center justify-between px-6">
-            <div className="flex items-center gap-3">
-              <div className="text-xl font-semibold text-white">
-                {currentRoom.t === 'c' && '#'} {currentRoom.name}
-              </div>
-              <p className="text-sm text-gray-400">{currentRoom.topic || 'No topic set'}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <button onClick={() => { setIsMembersOpen(true); loadMembers(); }} className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors" title="Members">
-                <Users size={16} /> {currentRoom.usersCount || 0}
-              </button>
-              <button onClick={() => { setIsPinnedOpen(true); loadPinned(); }} className="p-1 text-gray-400 hover:text-white transition-colors" title="Pinned Messages">
-                <Pin size={16} />
-              </button>
-              <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search messages..."
-                  className="w-64 pl-10 pr-4 py-2 bg-[#1f2329] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
-                title="Logout"
-              >
-                <LogOut size={20} />
-              </button>
-            </div>
-          </div>
-        ) : null}
+        <Header 
+          currentRoom={currentRoom}
+          onMembersOpen={() => { setIsMembersOpen(true); loadMembers(); }}
+          onPinnedOpen={() => { setIsPinnedOpen(true); loadPinned(); }}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onLogout={handleLogout}
+          user={currentUser}
+          onStatusChange={handleStatusChange}
+        />
 
         {/* Messages */}
         {currentRoom ? (

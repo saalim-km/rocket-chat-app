@@ -1,12 +1,12 @@
 // src/App.jsx
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import AdminRoute from './components/AdminRoute';
-import ChatLayout from './components/ChatLayout';
-import AdminDashboard from './components/Dashboard';
-import Login from './components/Login';
-import PublicRoute from './components/PublicRoute';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
+import ChatLayout from "./components/ChatLayout";
+import AdminDashboard from "./components/Dashboard";
+import Login from "./components/Login";
+import PublicRoute from "./components/PublicRoute";
 
 const App = () => {
   return (
@@ -14,10 +14,14 @@ const App = () => {
       <BrowserRouter>
         <Routes>
           /* Public
-          <Route path="/login" element={<PublicRoute>
-            <Login />
-          </PublicRoute>} />
-
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
           {/* Protected Routes */}
           <Route
             path="/chat"
@@ -27,7 +31,6 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-
           {/* Admin-Only Route */}
           <Route
             path="/admin"
@@ -37,8 +40,6 @@ const App = () => {
               </AdminRoute>
             }
           />
-
-          {/* Default Route */}
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>
