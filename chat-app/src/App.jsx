@@ -8,6 +8,7 @@ import AdminDashboard from "./components/Dashboard";
 import Login from "./components/Login";
 import PublicRoute from "./components/PublicRoute";
 import ChannelManagement from "./components/ChannelManagement";
+import Profile from "./components/Profile";
 
 const App = () => {
   return (
@@ -46,6 +47,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <ChannelManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

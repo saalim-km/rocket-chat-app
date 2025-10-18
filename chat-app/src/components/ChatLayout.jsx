@@ -29,7 +29,7 @@ const ChatLayout = () => {
 
   // New states for create modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [createType, setCreateType] = useState(null); // 'channel' or 'dm'
+  const [createType, setCreateType] = useState(null);
   const [channelFormData, setChannelFormData] = useState({ name: '', description: '', readOnly: false, private: false });
   const [channelFormErrors, setChannelFormErrors] = useState({});
   const [dmSearchQuery, setDmSearchQuery] = useState('');
@@ -125,7 +125,6 @@ const ChatLayout = () => {
     }
   }, [searchTerm, allMessages, currentRoom, authToken, userId]);
 
-  // New useEffect for DM user search
   useEffect(() => {
     if (createType !== 'dm' || !dmSearchQuery.trim() || !authToken || !userId) {
       setSearchedUsers([]);
@@ -134,7 +133,6 @@ const ChatLayout = () => {
     const searchUsers = async () => {
       const result = await spotlightSearch(dmSearchQuery, authToken, userId);
       if (result.success) {
-        // Filter out current user
         const filteredUsers = result.users.filter(u => u.username !== user.username);
         setSearchedUsers(filteredUsers);
       } else {
@@ -327,7 +325,6 @@ const ChatLayout = () => {
     }
   };
 
-  // New handlers for create
   const validateChannelForm = () => {
     const errors = {};
     if (!channelFormData.name.trim()) errors.name = 'Channel name is required';
@@ -353,7 +350,6 @@ const ChatLayout = () => {
     };
     const result = await createChannel(channelData, authToken, userId);
     if (result.success) {
-      // Reload rooms
       const roomsResult = await getRooms(authToken, userId);
       if (roomsResult.success) {
         setRooms(roomsResult.rooms);
@@ -370,11 +366,9 @@ const ChatLayout = () => {
     setCreateLoading(true);
     const result = await createDM(username, authToken, userId);
     if (result.success) {
-      // Reload rooms
       const roomsResult = await getRooms(authToken, userId);
       if (roomsResult.success) {
         setRooms(roomsResult.rooms);
-        // Optionally set current room to the new DM
         setCurrentRoom(result.room);
       }
       closeCreateModal();
@@ -399,21 +393,6 @@ const ChatLayout = () => {
     setSearchedUsers([]);
     setCreateError('');
   };
-
-  if (loading) {
-    return <div className="flex-1 flex items-center justify-center text-gray-400">Loading chat...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center">
-        <p className="text-red-400 mb-4">Error: {error}</p>
-        <button onClick={() => window.location.reload()} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg transition-colors">
-          Retry
-        </button>
-      </div>
-    );
-  }
 
   let createModalContent;
   if (!createType) {
