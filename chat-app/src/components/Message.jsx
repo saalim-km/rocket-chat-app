@@ -67,7 +67,7 @@ const Message = ({
           </div>
         </div>
       )}
-      <div className={`group px-6 py-2 hover:bg-gray-700/30 transition-colors ${isOwn ? '' : ''}`}>
+      <div className={`group px-6 py-2 hover:bg-gray-700/30 transition-colors ${isOwn ? 'ml-auto' : ''}`}>
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-semibold">
             {(message.u?.name || message.u?.username || 'U')[0].toUpperCase()}
@@ -121,7 +121,6 @@ const Message = ({
               )}
             </div>
 
-            {/* Rest of the component remains unchanged */}
             {message.attachments && message.attachments.length > 0 && (
               <div className="mt-2 space-y-2">
                 {message.attachments.map((attachment, index) => (
@@ -133,11 +132,11 @@ const Message = ({
                         className="rounded max-w-md max-h-96 object-contain"
                       />
                     )}
-                    {attachment.title && (
-                      <div className="font-medium text-white mt-2">{attachment.title}</div>
-                    )}
-                    {attachment.description && (
-                      <div className="text-sm text-gray-400 mt-1">{attachment.description}</div>
+                    {attachment.video_url && (
+                      <video controls className="mt-2 max-w-md rounded">
+                        <source src={attachment.video_url} type="video/mp4" />
+                        Your browser does not support the video element.
+                      </video>
                     )}
                     {attachment.audio_url && (
                       <audio controls className="mt-2 w-full">
@@ -145,11 +144,17 @@ const Message = ({
                         Your browser does not support the audio element.
                       </audio>
                     )}
-                    {attachment.video_url && (
-                      <video controls className="mt-2 max-w-md rounded">
-                        <source src={attachment.video_url} type="video/mp4" />
-                        Your browser does not support the video element.
-                      </video>
+                    {(!attachment.image_url && !attachment.video_url && !attachment.audio_url) && (
+                      <a
+                        href={attachment.download_url || attachment.image_url} // Fallback to download URL
+                        download={attachment.title}
+                        className="text-emerald-400 hover:underline"
+                      >
+                        {attachment.title || 'Download File'}
+                      </a>
+                    )}
+                    {attachment.description && (
+                      <div className="text-sm text-gray-400 mt-1">{attachment.description}</div>
                     )}
                   </div>
                 ))}

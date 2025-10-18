@@ -1,3 +1,4 @@
+// src/components/MessageInput.jsx
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { sendMessage, uploadFile } from '../services/rocketchat';
@@ -7,35 +8,43 @@ const MessageInput = ({ roomId, onNewMessage }) => {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]); // Changed to array for multiple files
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { authToken, userId } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if ((!message.trim() && !file) || sending || !authToken || !userId) return;
+    if ((!message.trim() && files.length === 0) || sending || !authToken || !userId) return;
 
     setSending(true);
     setError('');
 
     try {
       let result;
-      if (file) {
-        result = await uploadFile(roomId, file, authToken, userId);
-        if (result.success) {
-          onNewMessage({
-            _id: result.message._id,
-            msg: `Uploaded ${file.name}`,
-            u: { _id: userId, username: result.message.u.username },
-            ts: new Date(),
-            attachments: [{
-              title: file.name,
-              image_url: result.message.attachments[0]?.image_url || '',
-              description: `Uploaded by ${result.message.u.username}`,
-            }],
-          });
-        } else {
-          setError(result.error || 'Failed to upload file');
+      if (files.length > 0) {
+        for (const file of files) {
+          result = await uploadFile(roomId, file, authToken, userId, (progress) =>
+            setUploadProgress(progress)
+          );
+          if (result.success) {
+            onNewMessage({
+              _id: result.message._id,
+              msg: `Uploaded ${file.name}`,
+              u: { _id: userId, username: result.message.u.username },
+              ts: new Date(),
+              attachments: [
+                {
+                  title: file.name,
+                  image_url: result.message.attachments[0]?.image_url || '',
+                  description: `Uploaded by ${result.message.u.username}`,
+                  type: file.type.split('/')[0], // e.g., 'image', 'video', 'application'
+                },
+              ],
+            });
+          } else {
+            setError(result.error || 'Failed to upload file');
+          }
         }
       }
 
@@ -50,7 +59,8 @@ const MessageInput = ({ roomId, onNewMessage }) => {
 
       if (result && result.success) {
         setMessage('');
-        setFile(null);
+        setFiles([]);
+        setUploadProgress(0);
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -67,9 +77,11 @@ const MessageInput = ({ roomId, onNewMessage }) => {
   };
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
+    const selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 0) {
+      // Optional: Limit number of files (e.g., max 5)
+      const validFiles = selectedFiles.slice(0, 5);
+      setFiles(validFiles);
     }
   };
 
@@ -105,15 +117,17 @@ const MessageInput = ({ roomId, onNewMessage }) => {
             <input
               type="file"
               onChange={handleFileChange}
+              multiple // Enable multiple file selection
               className="hidden"
               disabled={sending}
+              accept="image/*,video/*,audio/*,application/pdf,.docx,.txt" // Restrict file types if needed
             />
             <Paperclip size={20} />
           </label>
 
           <button
             type="submit"
-            disabled={(!message.trim() && !file) || sending}
+            disabled={(!message.trim() && files.length === 0) || sending}
             className="flex-shrink-0 p-3 text-emerald-500 hover:text-emerald-400 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
           >
             {sending ? (
@@ -123,9 +137,14 @@ const MessageInput = ({ roomId, onNewMessage }) => {
             )}
           </button>
         </div>
-        {file && (
+        {uploadProgress > 0 && (
           <div className="mt-2 text-sm text-gray-400">
-            Selected file: {file.name}
+            Uploading: {Math.round(uploadProgress)}%
+          </div>
+        )}
+        {files.length > 0 && (
+          <div className="mt-2 text-sm text-gray-400">
+            Selected files: {files.map((f) => f.name).join(', ')}
           </div>
         )}
       </form>

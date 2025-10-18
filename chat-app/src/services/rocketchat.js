@@ -42,36 +42,6 @@ export const login = async (username, password) => {
     };
   }
 };
-// export const verifyTOTP = async (username, password, totp) => {
-//   try {
-//     const response = await api.post('/login', { username, password, totp });
-//     return response.data;
-//   } catch (error) {
-//     return error.response?.data || { success: false, error: 'TOTP verification failed' };
-//   }
-// };
-
-// export const initiateTOTPSetup = async (authToken, userId) => {
-//   try {
-//     const response = await api.post('/users.createTotp', {}, {
-//       headers: { 'X-Auth-Token': authToken, 'X-User-Id': userId }
-//     });
-//     return response.data;
-//   } catch (error) {
-//     return error.response?.data || { success: false, error: 'Failed to initiate TOTP setup' };
-//   }
-// };
-
-// export const verifyTOTPSetup = async (authToken, userId, totp) => {
-//   try {
-//     const response = await api.post('/users.verifyTotp', { totp }, {
-//       headers: { 'X-Auth-Token': authToken, 'X-User-Id': userId }
-//     });
-//     return response.data;
-//   } catch (error) {
-//     return error.response?.data || { success: false, error: 'Failed to verify TOTP' };
-//   }
-// };
 
 // Get user info
 export const getUserInfo = async (authToken, userId) => {
@@ -165,32 +135,6 @@ export const sendMessage = async (roomId, message, authToken, userId) => {
     return {
       success: false,
       error: error.response?.data?.error || 'Failed to send message',
-    };
-  }
-};
-
-// Upload a file
-// src/services/rocketchat.js (partial update)
-export const uploadFile = async (roomId, file, authToken, userId) => {
-  const formData = new FormData();
-  formData.append('file', file); // Required: The file itself
-  formData.append('description', `Uploaded ${file.name}`); // Optional: Description instead of msg
-
-  try {
-    const response = await api.post(`/rooms.upload/${roomId}`, formData, {
-      headers: {
-        ...getAuthHeaders(authToken, userId),
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return {
-      success: response.data.success,
-      message: response.data,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to upload file',
     };
   }
 };
@@ -558,5 +502,35 @@ export const setUserStatus = async (status, authToken, userId) => {
     return { success: response.data.success };
   } catch (error) {
     return { success: false, error: error.response?.data?.error || 'Failed to set status' };
+  }
+};
+
+
+export const uploadFile = async (roomId, file, authToken, userId, onProgress) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('description', `Uploaded by ${file.name.split('.')[0]}`); // Optional description
+
+  try {
+    const response = await api.post(
+      `/rooms.upload/${roomId}`,
+      formData,
+      {
+        headers: {
+          'X-Auth-Token': authToken,
+          'X-User-Id': userId,
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          if (onProgress) onProgress(percentCompleted);
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    return error.response?.data || { success: false, error: 'Upload failed' };
   }
 };
