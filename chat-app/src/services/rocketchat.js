@@ -567,3 +567,14 @@ export const deleteRoom = async (roomId, authToken, userId) => {
     return { success: false, error: error.response?.data?.error || 'Failed to delete channel' };
   }
 };
+
+export const removeUserFromChannel = async (roomId, userIdToRemove, authToken, userId) => {
+  try {
+    const response = await api.post('/channels.kick', { roomId, userId: userIdToRemove }, {
+      headers: getAuthHeaders(authToken, userId),
+    });
+    return { success: response.data.success };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || 'Failed to remove user from channel' };
+  }
+};

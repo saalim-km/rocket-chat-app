@@ -1,9 +1,9 @@
-// New Component: ChannelManagement.jsx - for /channel/:roomId
+// src/components/ChannelManagement.jsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getRoomInfo, updateChannelTopic, updateChannelDescription, deleteRoom, addUserToChannel, getRoomMembers, getAllUsers, searchMessages } from '../services/rocketchat';
-import { Users, Hash, Trash2, Plus, Edit } from 'lucide-react';
+import { getRoomInfo, updateChannelTopic, updateChannelDescription, deleteRoom, addUserToChannel, getRoomMembers, getAllUsers, removeUserFromChannel } from '../services/rocketchat';
+import { Users, Hash, Trash2, Plus, Edit, UserMinus } from 'lucide-react';
 
 const ChannelManagement = () => {
   const { roomId } = useParams();
@@ -78,13 +78,27 @@ const ChannelManagement = () => {
     if (!addUserId) return;
     const result = await addUserToChannel(roomId, addUserId, authToken, userId);
     if (result.success) {
-      // Refresh members
       const membersResult = await getRoomMembers(roomId, 'c', authToken, userId);
       if (membersResult.success) {
         setMembers(membersResult.members);
       }
       setAddUserId('');
       setSuccess('User added successfully');
+    } else {
+      setError(result.error);
+    }
+  };
+
+  const handleDeleteMember = async (memberId) => {
+    if (!memberId || !room?.u?._id || memberId === room.u._id) {
+      setError('Cannot remove the channel creator');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to remove ${members.find(m => m._id === memberId)?.username} from the channel?`)) return;
+    const result = await removeUserFromChannel(roomId, memberId, authToken, userId);
+    if (result.success) {
+      setMembers(members.filter(m => m._id !== memberId));
+      setSuccess('Member removed successfully');
     } else {
       setError(result.error);
     }
@@ -181,11 +195,20 @@ const ChannelManagement = () => {
           <h2 className="text-xl font-semibold text-white mb-4">Current Members ({members.length})</h2>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {members.map((member) => (
-              <div key={member._id} className="flex items-center gap-3 p-2  rounded">
+              <div key={member._id} className="flex items-center gap-3 p-2 bg-[#1f2329] rounded">
                 <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-semibold">
                   {member.username[0].toUpperCase()}
                 </div>
-                <div className='text-white'>{member.name || member.username}</div>
+                <div className="flex-1 text-white">{member.name || member.username}</div>
+                {(isAdmin || userId !== member._id) && member._id !== room?.u?._id && (
+                  <button
+                    onClick={() => handleDeleteMember(member._id)}
+                    className="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-gray-600"
+                    title="Remove Member"
+                  >
+                    <UserMinus size={16} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
