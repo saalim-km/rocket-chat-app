@@ -586,6 +586,13 @@ const ChatLayout = () => {
                   className="w-64 pl-10 pr-4 py-2 bg-[#1f2329] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+                title="Logout"
+              >
+                <LogOut size={20} />
+              </button>
             </div>
           </div>
         ) : null}
