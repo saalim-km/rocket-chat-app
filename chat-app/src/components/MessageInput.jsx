@@ -1,31 +1,66 @@
-import React, { useState } from 'react';
+// src/components/MessageInput.jsx
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { sendMessage } from '../services/rocketchat';
-import './MessageInput.css';
+import { sendMessage, uploadFile } from '../services/rocketchat';
+import { Send, Smile, Paperclip } from 'lucide-react';
 
 const MessageInput = ({ roomId, onNewMessage }) => {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [files, setFiles] = useState([]); // Changed to array for multiple files
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { authToken, userId } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!message.trim() || sending) return;
-    
+
+    if ((!message.trim() && files.length === 0) || sending || !authToken || !userId) return;
+
     setSending(true);
     setError('');
 
     try {
-      const result = await sendMessage(roomId, message.trim(), authToken, userId);
-      
-      if (result.success) {
-        // Add the message to the local state immediately for better UX
-        onNewMessage(result.message);
+      let result;
+      if (files.length > 0) {
+        for (const file of files) {
+          result = await uploadFile(roomId, file, authToken, userId, (progress) =>
+            setUploadProgress(progress)
+          );
+          if (result.success) {
+            onNewMessage({
+              _id: result.message._id,
+              msg: `Uploaded ${file.name}`,
+              u: { _id: userId, username: result.message.u.username },
+              ts: new Date(),
+              attachments: [
+                {
+                  title: file.name,
+                  image_url: result.message.attachments[0]?.image_url || '',
+                  description: `Uploaded by ${result.message.u.username}`,
+                  type: file.type.split('/')[0], // e.g., 'image', 'video', 'application'
+                },
+              ],
+            });
+          } else {
+            setError(result.error || 'Failed to upload file');
+          }
+        }
+      }
+
+      if (message.trim()) {
+        result = await sendMessage(roomId, message.trim(), authToken, userId);
+        if (result.success) {
+          onNewMessage(result.message);
+        } else {
+          setError(result.error || 'Failed to send message');
+        }
+      }
+
+      if (result && result.success) {
         setMessage('');
-      } else {
-        setError(result.error || 'Failed to send message');
+        setFiles([]);
+        setUploadProgress(0);
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -41,49 +76,80 @@ const MessageInput = ({ roomId, onNewMessage }) => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 0) {
+      // Optional: Limit number of files (e.g., max 5)
+      const validFiles = selectedFiles.slice(0, 5);
+      setFiles(validFiles);
+    }
+  };
+
   return (
-    <div className="message-input-container">
+    <div className="border-t border-gray-700 bg-[#2f343d]">
       {error && (
-        <div className="error-message">
+        <div className="px-6 py-2 bg-red-500/10 border-b border-red-500/50 text-red-400 text-sm">
           {error}
         </div>
       )}
-      
-      <form onSubmit={handleSubmit} className="message-input-form">
-        <div className="input-wrapper">
+
+      <form onSubmit={handleSubmit} className="p-4">
+        <div className="flex items-end gap-2 bg-[#1f2329] rounded-lg border border-gray-700 focus-within:border-emerald-500 transition-colors">
+          <button
+            type="button"
+            className="flex-shrink-0 p-3 text-gray-400 hover:text-white transition-colors"
+            title="Add emoji"
+          >
+            <Smile size={20} />
+          </button>
+
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
             disabled={sending}
-            className="message-textarea"
-            rows="1"
+            className="flex-1 bg-transparent text-white placeholder-gray-500 py-3 px-0 resize-none outline-none max-h-32"
+            rows={1}
           />
+
+          <label className="flex-shrink-0 p-3 text-gray-400 hover:text-white transition-colors cursor-pointer">
+            <input
+              type="file"
+              onChange={handleFileChange}
+              multiple // Enable multiple file selection
+              className="hidden"
+              disabled={sending}
+              accept="image/*,video/*,audio/*,application/pdf,.docx,.txt" // Restrict file types if needed
+            />
+            <Paperclip size={20} />
+          </label>
+
           <button
             type="submit"
-            disabled={!message.trim() || sending}
-            className="send-button"
+            disabled={(!message.trim() && files.length === 0) || sending}
+            className="flex-shrink-0 p-3 text-emerald-500 hover:text-emerald-400 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
           >
             {sending ? (
-              <div className="sending-spinner"></div>
+              <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
             ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Send size={20} />
             )}
           </button>
         </div>
+        {uploadProgress > 0 && (
+          <div className="mt-2 text-sm text-gray-400">
+            Uploading: {Math.round(uploadProgress)}%
+          </div>
+        )}
+        {files.length > 0 && (
+          <div className="mt-2 text-sm text-gray-400">
+            Selected files: {files.map((f) => f.name).join(', ')}
+          </div>
+        )}
       </form>
     </div>
   );
 };
 
 export default MessageInput;
-
