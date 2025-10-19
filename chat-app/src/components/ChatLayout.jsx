@@ -15,12 +15,14 @@ import {
   createDM,
   spotlightSearch,
   setUserStatus,
+  getThreadMessages, // FIXED: Added missing import
 } from "../services/rocketchat";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { Hash, User } from "lucide-react";
+import ThreadModal from "./Thread"; // FIXED: Corrected import path
 
 const ChatLayout = () => {
   const { authToken, userId, user, isAdmin, logout } = useAuth();
@@ -59,6 +61,9 @@ const ChatLayout = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
 
+  const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
+  const [selectedThread, setSelectedThread] = useState(null); // { roomId, threadMessageId, messages: [] }
+  const [replyingTo, setReplyingTo] = useState(null);
   useEffect(() => {
     setCurrentUser(user);
   }, [user]);
@@ -213,10 +218,65 @@ const ChatLayout = () => {
     setPinnedMessages([]);
   };
 
-  const handleNewMessage = (message) => {
-    if (!message.t || !["message_pinned", "rm"].includes(message.t)) {
+const handleNewMessage = (message) => {
+    if (!message.t || !['message_pinned', 'rm'].includes(message.t)) {
       setMessages((prevMessages) => [...prevMessages, message]);
       setAllMessages((prevMessages) => [...prevMessages, message]);
+      // NEW: If it's a thread reply, update selected thread if open
+      if (selectedThread && message.tmid === selectedThread.threadMessageId) {
+        setSelectedThread(prev => ({ ...prev, messages: [...prev.messages, message] }));
+      }
+    }
+  };
+
+  const openThread = async (threadMessageId) => {
+    if (!currentRoom || !authToken || !userId) return;
+    setLoading(true);
+    try {
+      const result = await getThreadMessages(currentRoom._id, threadMessageId, authToken, userId);
+      if (result.success) {
+        setSelectedThread({
+          roomId: currentRoom._id,
+          threadMessageId,
+          messages: result.messages.reverse(), // Chronological order
+        });
+        setIsThreadModalOpen(true);
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Failed to load thread');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // NEW: Start replying to a message (sets context for input)
+  const startReply = (message) => {
+    setReplyingTo({ id: message._id, text: message.msg.substring(0, 50) + '...' });
+  };
+
+  // NEW: Cancel reply
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  // UPDATED: sendMessage now passes threadMessageId if replying
+  const handleSendInThread = (text) => {
+    if (replyingTo) {
+      sendMessage(currentRoom._id, text, authToken, userId, replyingTo.id)
+        .then((result) => {
+          if (result.success) {
+            handleNewMessage(result.message);
+            cancelReply();
+          }
+        });
+    } else {
+      // Normal send
+      sendMessage(currentRoom._id, text, authToken, userId)
+        .then((result) => {
+          if (result.success) handleNewMessage(result.message);
+        });
     }
   };
 
@@ -789,6 +849,8 @@ const ChatLayout = () => {
             onEditMessage={openEditModal}
             onPinMessage={handlePinMessage}
             onUnpinMessage={handleUnpinMessage}
+            onOpenThread={openThread} // FIXED: Pass prop
+            onStartReply={startReply} // FIXED: Pass prop
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400">
@@ -808,6 +870,8 @@ const ChatLayout = () => {
           <MessageInput
             roomId={currentRoom._id}
             onNewMessage={handleNewMessage}
+            replyingTo={replyingTo} // FIXED: Pass prop
+            onCancelReply={cancelReply} // FIXED: Pass prop
           />
         )}
       </div>
@@ -869,6 +933,20 @@ const ChatLayout = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {isThreadModalOpen && selectedThread && (
+        <ThreadModal
+          thread={selectedThread}
+          onClose={() => setIsThreadModalOpen(false)}
+          currentUserId={userId}
+          currentUserUsername={user?.username}
+          onDeleteMessage={openDeleteModal}
+          onToggleReact={handleToggleReact}
+          onEditMessage={openEditModal}
+          onPinMessage={handlePinMessage}
+          onUnpinMessage={handleUnpinMessage}
+        />
       )}
 
       {isMembersOpen && (
