@@ -98,7 +98,7 @@ const Message = ({
                   />
                 )}
               </span>
-              {(isOwn || isAdmin) && (
+              {
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 ml-auto">
                   {isOwn && (
                     <>
@@ -136,7 +136,7 @@ const Message = ({
                     Reply
                   </button>
                 </div>
-              )}
+              }
             </div>
 
             <div className="text-gray-200 break-words">
