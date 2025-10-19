@@ -1,13 +1,24 @@
-import { useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import Message from './Message';
+import { useEffect, useRef } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import Message from "./Message";
 
-const MessageList = ({ messages, currentUserId, currentUserUsername, onDeleteMessage, onToggleReact, onEditMessage, onPinMessage, onUnpinMessage }) => {
+const MessageList = ({
+  messages,
+  currentUserId,
+  currentUserUsername,
+  onDeleteMessage,
+  onToggleReact,
+  onEditMessage,
+  onPinMessage,
+  onUnpinMessage,
+  onOpenThread, // Prop
+  onStartReply, // Prop
+}) => {
   const { authToken, userId } = useAuth();
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -18,7 +29,9 @@ const MessageList = ({ messages, currentUserId, currentUserUsername, onDeleteMes
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-400">No messages yet. Start the conversation!</p>
+          <p className="text-gray-400">
+            No messages yet. Start the conversation!
+          </p>
         </div>
       </div>
     );
@@ -38,6 +51,8 @@ const MessageList = ({ messages, currentUserId, currentUserUsername, onDeleteMes
           onPinMessage={onPinMessage}
           onUnpinMessage={onUnpinMessage}
           currentUserUsername={currentUserUsername}
+          onOpenThread={onOpenThread}
+          onStartReply={onStartReply}
         />
       ))}
       <div ref={messagesEndRef} />
