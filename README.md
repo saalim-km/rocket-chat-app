@@ -1,227 +1,190 @@
-# React Chat App with Rocket.Chat
+# 🚀 Conversa - Real-Time Chat App (React + Rocket.Chat)
 
-A modern React chat application that connects to a local Rocket.Chat server. Built with Vite, React, and styled with CSS.
+A modern chat application built from scratch using **React (Vite)** and **Tailwind CSS**, powered by a **Rocket.Chat backend (via Docker)**.  
+Conversa replicates popular chat tools like **Slack** or **Microsoft Teams**, supporting real-time group and private messaging.
 
-## 🚀 Quick Start
+---
+
+## 📂 Directory Structure
+
+```
+saalim-km-conversa/
+├── docker-compose.yml        # Rocket.Chat + MongoDB setup
+├── .env.example               # Example environment variables
+├── README.md                  # Project documentation
+└── chat-app/                  # Frontend (React + Vite)
+    ├── components.json
+    ├── eslint.config.js
+    ├── vite.config.js
+    ├── jsconfig.json
+    ├── index.html
+    ├── package.json
+    ├── public/
+    ├── lib/
+    │   └── utils.js
+    ├── components/
+    │   └── ui/
+    │       ├── avatar.jsx
+    │       ├── button.jsx
+    │       ├── card.jsx
+    │       ├── dropdown-menu.jsx
+    │       ├── input.jsx
+    │       ├── label.jsx
+    │       └── textarea.jsx
+    └── src/
+        ├── App.jsx
+        ├── main.jsx
+        ├── index.css
+        ├── assets/
+        ├── contexts/
+        │   └── AuthContext.jsx
+        ├── services/
+        │   └── rocketchat.js
+        └── components/
+            ├── AdminRoute.jsx
+            ├── ChannelManagement.jsx
+            ├── ChatLayout.jsx
+            ├── Dashboard.jsx
+            ├── Header.jsx
+            ├── Login.jsx
+            ├── Message.jsx
+            ├── MessageInput.jsx
+            ├── MessageList.jsx
+            ├── Profile.jsx
+            ├── ProtectedRoute.jsx
+            ├── PublicRoute.jsx
+            ├── RoomList.jsx
+            ├── Sidebar.jsx
+            └── Thread.jsx
+```
+
+---
+
+## ⚙️ Setup Instructions
 
 ### Prerequisites
-- Docker and Docker Compose
-- Node.js 20.19+ or 22.12+ (for the React app)
+- Docker & Docker Compose
+- Node.js (v20.19+ or v22.12+)
 - Git
 
-### Clone and Setup
-
+### 1. Clone the Repository
 ```bash
 git clone <your-repo-url>
-cd rocketchat-example
+cd saalim-km-conversa
 ```
 
-### Get Registration Token for Rocketchat
-Signup on https://cloud.rocket.chat/home
-
-Click on `Register Self Managed`  - copy token 
-
-### Update env vars 
-Copy .env.example to `.env`
-Update value for `REG_TOKEN`
-
-
-### Start Rocket.Chat Server
-
+### 2. Configure Environment Variables
 ```bash
-# Start MongoDB and Rocket.Chat
-docker-compose up -d
-
+cp .env.example .env
 ```
+Then update `REG_TOKEN` and other values as needed.
 
-### 4. Start React Example Chat App
+### 3. Start Rocket.Chat Server
+```bash
+docker-compose up -d
+```
+Rocket.Chat will be available at: `http://localhost:3000`
 
+### 4. Start the React App
 ```bash
 cd chat-app
 npm install
 npm run dev
 ```
-
-The React app will be available at `http://localhost:5173` (or another port if 5173 is busy).
-
-## 🔐 Creating Users in Rocket.Chat
-
-### Method 1: Through Admin Panel (Recommended)
-
-1. **Login as Admin**: Go to `http://localhost:3000` and login with your admin credentials
-2. **Navigate to Users**: Go to **Administration** → **Users**
-3. **Create New User**: Click **+ New** button
-4. **Fill User Details**:
-   - **Name**: Full name (e.g., "Test User")
-   - **Username**: Login username (e.g., "testuser")
-   - **Email**: Email address (e.g., "test@example.com")
-   - **Password**: Set a password
-   - **Roles**: Leave as "user" (default)
-5. **Save**: Click **Save** to create the user
-
-### Method 2: Using API (Advanced)
-
-```bash
-# Install axios if not already installed
-npm install axios
-
-# Run the user creation script
-node create-user-script.js
-```
-
-## 🎯 Features
-
-- 🔐 **Authentication**: Login with username/password
-- 💬 **Real-time Chat**: Send and receive messages in real-time
-- 📱 **Responsive Design**: Works on desktop and mobile devices
-- 🎨 **Modern UI**: Clean, intuitive interface
-- 🔄 **Auto-refresh**: Messages update every 3 seconds
-- 📋 **Room Management**: Browse and select different channels/rooms
-
-## 🏗️ Project Structure
-
-```
-rocketchat-example/
-├── chat-app/                    # React application
-│   ├── src/
-│   │   ├── components/          # React components
-│   │   │   ├── Login.jsx       # Login form
-│   │   │   ├── ChatLayout.jsx  # Main chat container
-│   │   │   ├── RoomList.jsx    # Sidebar with rooms
-│   │   │   ├── MessageList.jsx # Message display
-│   │   │   ├── MessageInput.jsx# Message input form
-│   │   │   └── Message.jsx     # Individual message
-│   │   ├── contexts/
-│   │   │   └── AuthContext.jsx # Authentication state
-│   │   ├── services/
-│   │   │   └── rocketchat.js   # API integration
-│   │   └── App.jsx             # Main app component
-│   ├── .env                    # Environment variables
-│   └── package.json
-├── docker-compose.yml          # Rocket.Chat + MongoDB setup
-├── create-user-script.js       # User creation helper
-└── README.md                   # This file
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-The React app uses these environment variables (in `chat-app/.env`):
-
-```env
-VITE_ROCKETCHAT_URL=http://localhost:3000
-```
-
-### Docker Compose Configuration
-
-The `docker-compose.yml` file sets up:
-- **MongoDB 8.0**: Database with replica set
-- **Rocket.Chat 7.7.9**: Chat server
-- **Persistent volumes**: Data persistence across restarts
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Rocket.Chat not starting**:
-   ```bash
-   # Check logs
-   docker logs rocketchat
-   
-   # Restart services
-   docker-compose down && docker-compose up -d
-   ```
-
-2. **CORS errors in React app**:
-   - Make sure CORS is enabled in Rocket.Chat admin settings
-   - Go to `http://localhost:3000/admin/settings/General` → **REST API** → **CORS** → Enable and set to `*`
-
-3. **Login failed**:
-   - Verify Rocket.Chat is running: `curl http://localhost:3000`
-   - Check if user exists in Rocket.Chat admin panel
-   - Ensure CORS is properly configured
-
-4. **No rooms/channels**:
-   - Make sure you're logged in with a user that has access to channels
-   - Check if the user is added to channels in Rocket.Chat admin panel
-
-5. **Messages not loading**:
-   - Check browser console for API errors
-   - Verify authentication token is valid
-   - Ensure you've selected a room/channel
-
-### Development
-
-- **Hot Reload**: The React app supports hot module replacement
-- **API Errors**: Check browser console for detailed error messages
-- **Rocket.Chat Logs**: Use `docker logs rocketchat -f` to follow logs
-
-## 🚀 Deployment
-
-### Production Setup
-
-1. **Update Environment Variables**:
-   ```env
-   VITE_ROCKETCHAT_URL=https://your-rocketchat-domain.com
-   ```
-
-2. **Build React App**:
-   ```bash
-   cd chat-app
-   npm run build
-   ```
-
-3. **Deploy**: Serve the `dist` folder with any static file server
-
-### Docker Production
-
-For production, consider:
-- Using environment-specific Docker Compose files
-- Setting up proper SSL certificates
-- Configuring proper CORS origins instead of `*`
-- Using a reverse proxy (nginx)
-
-## 📚 API Integration
-
-The app uses Rocket.Chat's REST API v1:
-
-- **Authentication**: `POST /api/v1/login`
-- **Get Rooms**: `GET /api/v1/rooms.get`
-- **Get Messages**: `GET /api/v1/channels.history`
-- **Send Message**: `POST /api/v1/chat.sendMessage`
-
-## 🛠️ Technologies Used
-
-- **React 18**: UI framework
-- **Vite**: Build tool and dev server
-- **Axios**: HTTP client for API calls
-- **CSS3**: Modern styling with flexbox/grid
-- **Rocket.Chat 7.7.9**: Backend chat server
-- **MongoDB 8.0**: Database
-- **Docker**: Containerization
-
-## 📝 License
-
-MIT License - feel free to use this project for learning and development.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📞 Support
-
-If you encounter any issues:
-1. Check the troubleshooting section above
-2. Review Rocket.Chat logs: `docker logs rocketchat`
-3. Check browser console for errors
-4. Ensure all prerequisites are met
+Visit `http://localhost:5173` to access the chat UI.
 
 ---
 
-**Happy Chatting! 🎉**
+## 💬 Core Features
 
+- 🔐 **User Authentication** (username/password)
+- 💬 **Real-Time Messaging**
+- 🧑‍🤝‍🧑 **Room & Channel Management**
+- 🎨 **Responsive Tailwind UI**
+- 🔄 **Message Auto-Refresh (3s polling)**
+- ⚙️ **Admin/User Role Routing**
+- 🧠 **Context-Based Auth State Management**
+
+---
+
+## 🔧 Configuration
+
+### React Environment Variables (`chat-app/.env`)
+```
+VITE_ROCKETCHAT_URL=http://localhost:3000
+```
+
+### Docker Configuration (`docker-compose.yml`)
+- **Rocket.Chat 7.7.9**
+- **MongoDB 8.0**
+- Persistent volumes for data storage
+
+---
+
+## 🧰 API Integration (Rocket.Chat REST API v1)
+
+| Action | Endpoint | Method |
+|--------|-----------|--------|
+| Login | `/api/v1/login` | POST |
+| Get Rooms | `/api/v1/rooms.get` | GET |
+| Get Messages | `/api/v1/channels.history` | GET |
+| Send Message | `/api/v1/chat.sendMessage` | POST |
+
+---
+
+## 🧱 Tech Stack
+
+- **Frontend**: React 18, Vite, Tailwind CSS
+- **Backend**: Rocket.Chat (Dockerized)
+- **Database**: MongoDB 8.0
+- **Communication**: REST API (Axios)
+
+---
+
+## 🧪 Troubleshooting
+
+**Common Issues:**
+1. **Rocket.Chat not starting**
+   ```bash
+   docker logs rocketchat
+   docker-compose restart
+   ```
+2. **CORS Error**
+   Enable CORS in Rocket.Chat → Admin → Settings → REST API → Set `*`
+3. **Login Fails**
+   Check if user exists and Rocket.Chat is running
+4. **No Channels Visible**
+   Ensure user is added to at least one room
+
+---
+
+## 📦 Deployment
+
+### Build Production App
+```bash
+cd chat-app
+npm run build
+```
+Serve the generated `dist/` folder via any static server.
+
+### Docker Production
+- Update environment variables
+- Use NGINX reverse proxy
+- Configure SSL and restricted CORS origins
+
+---
+
+## 📝 License
+MIT License - Free to use and modify.
+
+---
+
+## 🤝 Contributing
+1. Fork this repo
+2. Create a feature branch
+3. Commit and push your changes
+4. Submit a PR
+
+---
+
+**Happy Chatting with Conversa!**
